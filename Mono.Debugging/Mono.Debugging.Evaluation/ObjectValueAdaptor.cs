@@ -105,7 +105,7 @@ namespace Mono.Debugging.Evaluation
 			} catch (EvaluatorException ex) {
 				return ObjectValue.CreateFatalError (path.LastName, ex.Message, flags);
 			} catch (Exception ex) {
-				ctx.WriteDebuggerError (ex);
+				DebuggerLoggingService.LogError ("Exception in CreateObjectValue()", ex);
 				return ObjectValue.CreateFatalError (path.LastName, ex.Message, flags);
 			}
 		}
@@ -534,7 +534,20 @@ namespace Mono.Debugging.Evaluation
 				if (NullableHasValue (ctx, type, obj)) {
 					ValueReference value = NullableGetValue (ctx, type, obj);
 
-					return GetObjectValueChildren (ctx, objectSource, value.Type, value.Value, firstItemIndex, count, dereferenceProxy);
+					try {
+						return GetObjectValueChildren (ctx, objectSource, value.Type, value.Value, firstItemIndex, count, dereferenceProxy);
+					} catch (ImplicitEvaluationDisabledException) {
+						return new[] {ObjectValue.CreateImplicitNotSupported (value, new ObjectPath (value.Name), GetDisplayTypeName (GetTypeName (ctx, value.Type)), value.Flags)};
+					} catch (NotSupportedExpressionException ex) {
+						return new[] {ObjectValue.CreateNotSupported (value, new ObjectPath (value.Name), GetDisplayTypeName (GetTypeName (ctx, value.Type)), ex.Message, value.Flags)};
+					} catch (EvaluatorExceptionThrownException ex) {
+						return new [] {ObjectValue.CreateEvaluationException (ctx, value, new ObjectPath (value.Name), ex)};
+					} catch (EvaluatorException ex) {
+						return new [] {ObjectValue.CreateError (value, new ObjectPath (value.Name), "", ex.Message, value.Flags)};
+					} catch (Exception ex) {
+						DebuggerLoggingService.LogError ("Exception in GetObjectValueChildren()", ex);
+						return new[] {ObjectValue.CreateError (null, new ObjectPath (value.Name), GetDisplayTypeName (GetTypeName (ctx, value.Type)), ex.Message, value.Flags)};
+					}
 				}
 
 				return new ObjectValue[0];
@@ -598,6 +611,14 @@ namespace Mono.Debugging.Evaluation
 						names.Disambiguate (val, oval);
 						values.Add (oval);
 					}
+				} catch (ImplicitEvaluationDisabledException) {
+					values.Add (ObjectValue.CreateImplicitNotSupported (val, new ObjectPath (val.Name), GetDisplayTypeName (GetTypeName (ctx, val.Type)), val.Flags));
+				} catch (NotSupportedExpressionException ex) {
+					values.Add (ObjectValue.CreateNotSupported (val, new ObjectPath (val.Name), GetDisplayTypeName (GetTypeName (ctx, val.Type)), ex.Message, val.Flags));
+				} catch (EvaluatorExceptionThrownException ex) {
+					values.Add (ObjectValue.CreateEvaluationException (ctx, val, new ObjectPath (val.Name), ex));
+				} catch (EvaluatorException ex) {
+					values.Add (ObjectValue.CreateError (val, new ObjectPath (val.Name), "", ex.Message, val.Flags));
 				} catch (Exception ex) {
 					DebuggerLoggingService.LogError ("Exception in GetObjectValueChildren()", ex);
 					values.Add (ObjectValue.CreateError (null, new ObjectPath (val.Name), GetDisplayTypeName (GetTypeName (ctx, val.Type)), ex.Message, val.Flags));
