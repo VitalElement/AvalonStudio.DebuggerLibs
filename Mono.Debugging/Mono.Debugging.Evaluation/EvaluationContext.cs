@@ -26,6 +26,7 @@
 //
 
 using System;
+using System.Threading;
 using Mono.Debugging.Client;
 using Mono.Debugging.Backend;
 
@@ -90,8 +91,17 @@ namespace Mono.Debugging.Evaluation
 			Evaluator = ctx.Evaluator;
 			Adapter = ctx.Adapter;
 		}
-		
+
+		internal EvaluationContext WithCancellationToken (CancellationToken token)
+		{
+			var evaluationContext = Clone ();
+			evaluationContext.cancellationToken = token;
+			return evaluationContext;
+		}
+
 		ExpressionValueSource expressionValueSource;
+		CancellationToken cancellationToken = CancellationToken.None;
+
 		internal ExpressionValueSource ExpressionValueSource {
 			get {
 				if (expressionValueSource == null)
@@ -103,6 +113,13 @@ namespace Mono.Debugging.Evaluation
 		public virtual bool SupportIEnumerable {
 			get {
 				return false;
+			}
+		}
+
+		internal CancellationToken CancellationToken
+		{
+			get{
+				return cancellationToken;
 			}
 		}
 	}
