@@ -31,7 +31,7 @@ using System.Text;
 using System.Reflection;
 using System.Diagnostics;
 using System.Collections.Generic;
-
+using System.Threading;
 using Mono.Debugging.Client;
 using Mono.Debugging.Backend;
 
@@ -58,6 +58,9 @@ namespace Mono.Debugging.Evaluation
 		public event EventHandler<BusyStateEventArgs> BusyStateChanged;
 
 		static readonly Dictionary<string, string> CSharpTypeNames = new Dictionary<string, string> ();
+
+		readonly List<CancellationTokenSource> cancellationTokenSources = new List<CancellationTokenSource> ();
+		readonly object cancellationTokensLock = new object ();
 		readonly AsyncEvaluationTracker asyncEvaluationTracker = new AsyncEvaluationTracker ();
 		readonly AsyncOperationManager asyncOperationManager = new AsyncOperationManager ();
 
@@ -519,6 +522,17 @@ namespace Mono.Debugging.Evaluation
 
 		public virtual ObjectValue[] GetObjectValueChildren (EvaluationContext ctx, IObjectSource objectSource, object type, object obj, int firstItemIndex, int count, bool dereferenceProxy)
 		{
+			return PerformWithCancellationToken (token => {
+				try {
+					return GetObjectValueChildrenImpl (ctx.WithCancellationToken (token), objectSource, type, obj, firstItemIndex, count, dereferenceProxy);
+				} catch (OperationCanceledException) {
+					return new[] {ObjectValue.CreateUnknown ("Evaluation aborted")};
+				}
+			});
+		}
+
+		ObjectValue[] GetObjectValueChildrenImpl (EvaluationContext ctx, IObjectSource objectSource, object type, object obj, int firstItemIndex, int count, bool dereferenceProxy)
+		{
 			if (obj is EvaluationResult)
 				return new ObjectValue[0];
 			
@@ -587,6 +601,7 @@ namespace Mono.Debugging.Evaluation
 			object tdataType = type;
 			
 			foreach (ValueReference val in list) {
+				ctx.CancellationToken.ThrowIfCancellationRequested ();
 				try {
 					object decType = val.DeclaringType;
 					if (decType != null && decType != tdataType) {
@@ -1374,9 +1389,39 @@ namespace Mono.Debugging.Evaluation
 
 		public void CancelAsyncOperations ( )
 		{
+			CancelTokens ();
 			asyncEvaluationTracker.Stop ();
 			asyncOperationManager.AbortAll ();
 			asyncEvaluationTracker.WaitForStopped ();
+		}
+
+		void CancelTokens ()
+		{
+			lock (cancellationTokensLock) {
+				foreach (var cancellationTokenSource in cancellationTokenSources) {
+					try {
+						cancellationTokenSource.Cancel();
+					} catch (Exception e) {
+						DebuggerLoggingService.LogError ("Exception when cancelling operation", e);
+					}
+				}
+				cancellationTokenSources.Clear ();
+			}
+		}
+
+		internal T PerformWithCancellationToken<T> (Func<CancellationToken, T> func)
+		{
+			var cancellationTokenSource = new CancellationTokenSource ();
+			lock (cancellationTokensLock) {
+				cancellationTokenSources.Add (cancellationTokenSource);
+			}
+			try {
+				return func(cancellationTokenSource.Token);
+			} finally {
+				lock (cancellationTokensLock) {
+					cancellationTokenSources.Remove (cancellationTokenSource);
+				}
+			}
 		}
 
 		public ObjectValue GetExpressionValue (EvaluationContext ctx, string exp)
