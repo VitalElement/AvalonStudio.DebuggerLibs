@@ -2164,14 +2164,22 @@ namespace Mono.Debugging.Soft
 				return true;
 			
 			if (!string.IsNullOrEmpty (bp.ConditionExpression)) {
-				string res = EvaluateExpression (thread, bp.ConditionExpression, bp);
-				if (bp.BreakIfConditionChanges) {
-					if (res == binfo.LastConditionValue)
-						return true;
-					binfo.LastConditionValue = res;
-				} else {
-					if (res == null || res.ToLowerInvariant () != "true")
-						return true;
+				try {
+					string res = EvaluateExpression (thread, bp.ConditionExpression, bp);
+					if (bp.BreakIfConditionChanges) {
+						if (res == binfo.LastConditionValue)
+							return true;
+						binfo.LastConditionValue = res;
+					}
+					else {
+						if (res == null || res.ToLowerInvariant () != "true")
+							return true;
+					}
+				}
+				catch (EvaluatorException e) {
+					OnDebuggerOutput (false, e.Message);
+					binfo.SetStatus (BreakEventStatus.Invalid, e.Message);
+					return true;
 				}
 			}
 			if ((bp.HitAction & HitAction.CustomAction) != HitAction.None) {
@@ -2208,7 +2216,13 @@ namespace Mono.Debugging.Soft
 				if (j == -1)
 					break;
 				string se = exp.Substring (i + 1, j - i - 1);
-				se = EvaluateExpression (thread, se, null);
+				try {
+					se = EvaluateExpression (thread, se, null);
+				}
+				catch (EvaluatorException e) {
+					OnDebuggerOutput (false, e.ToString ());
+					return String.Empty;
+				}
 				sb.Append (exp, last, i - last);
 				sb.Append (se);
 				last = j + 1;
@@ -2273,8 +2287,7 @@ namespace Mono.Debugging.Soft
 						if (!string.IsNullOrEmpty (location))
 							message = location + ": " + message;
 
-						OnDebuggerOutput (true, message);
-						return string.Empty;
+						throw new EvaluatorException (message);
 					}
 
 					// resolve types...
@@ -2290,26 +2303,12 @@ namespace Mono.Debugging.Soft
 					if (!string.IsNullOrEmpty (location))
 						message = location + ": " + message;
 
-					OnDebuggerOutput (true, message);
-					return string.Empty;
+					throw new EvaluatorException (message);
 				}
 
 				return val.CreateObjectValue (false).Value;
 			} catch (EvaluatorException ex) {
-				string message;
-
-				if (bp != null) {
-					message = string.Format ("Failed to evaluate expression in conditional breakpoint. {0}", ex.Message);
-					string location = FormatSourceLocation (bp);
-
-					if (!string.IsNullOrEmpty (location))
-						message = location + ": " + message;
-				} else {
-					message = ex.ToString ();
-				}
-
-				OnDebuggerOutput (true, message);
-				return string.Empty;
+				throw;
 			} catch (Exception ex) {
 				OnDebuggerOutput (true, ex.ToString ());
 				return string.Empty;
