@@ -856,6 +856,8 @@ namespace Mono.Debugging.Soft
 				thread.SetIP (location);
 				currentAddress = location.ILOffset;
 				currentStackDepth = frames.Length;
+				StackVersion++;
+				RaiseStopEvent ();
 			} catch (ArgumentException) {
 				throw new NotSupportedException ();
 			}
