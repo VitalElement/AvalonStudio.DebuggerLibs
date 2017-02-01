@@ -1287,7 +1287,7 @@ namespace Mono.Debugging.Client
 		{
 			var s = GetBreakEventStatus (be);
 			if (s == BreakEventStatus.BindError || s == BreakEventStatus.Invalid)
-				OnDebuggerOutput (true, GetBreakEventErrorMessage (be) + ": " + GetBreakEventStatusMessage (be) + "\n");
+				OnDebuggerOutput (false, GetBreakEventErrorMessage (be) + ": " + GetBreakEventStatusMessage (be) + "\n");
 			Breakpoints.NotifyStatusChanged (be);
 		}
 		
