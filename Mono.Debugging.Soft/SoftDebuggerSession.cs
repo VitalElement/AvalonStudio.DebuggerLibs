@@ -2485,7 +2485,12 @@ namespace Mono.Debugging.Soft
 						if (loc != null) {
 							OnDebuggerOutput (false, string.Format ("Resolved pending breakpoint at '{0}:{1},{2}' to {3} [0x{4:x5}].\n",
 							                                        s, bp.Line, bp.Column, GetPrettyMethodName (loc.Method), loc.ILOffset));
-							ResolvePendingBreakpoint (bi, loc);
+							try {
+								ResolvePendingBreakpoint (bi, loc);
+							}
+							catch (ArgumentException e) {
+								bi.SetStatus (BreakEventStatus.Invalid, e.Message);
+							}
 							
 							// Note: if the type or method is generic, there may be more instances so don't assume we are done resolving the breakpoint
 							if (!genericMethod && !type.IsGenericType)
