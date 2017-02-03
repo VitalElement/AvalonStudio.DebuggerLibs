@@ -1253,7 +1253,7 @@ namespace Mono.Debugging.Soft
 		
 		static ValueReference GetThisReference (SoftEvaluationContext ctx)
 		{
-			return ctx.Frame.Method.IsStatic ? null : new ThisValueReference (ctx, ctx.Frame);
+			return ctx.Frame.Method.IsStatic ? null : new ThisValueReference (ctx);
 		}
 		
 		public override ValueReference GetCurrentException (EvaluationContext ctx)

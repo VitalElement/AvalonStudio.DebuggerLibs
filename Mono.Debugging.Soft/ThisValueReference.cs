@@ -35,13 +35,13 @@ namespace Mono.Debugging.Soft
 {
 	public class ThisValueReference : ValueReference
 	{
-		readonly StackFrame frame;
 		object type;
 		Value value;
+		private SoftEvaluationContext ctx;
 
-		public ThisValueReference (EvaluationContext ctx, StackFrame frame) : base (ctx)
+		public ThisValueReference (SoftEvaluationContext ctx) : base (ctx)
 		{
-			this.frame = frame;
+			this.ctx = ctx;
 		}
 
 		public override ObjectValueFlags Flags {
@@ -55,14 +55,14 @@ namespace Mono.Debugging.Soft
 		public override object Value {
 			get {
 				if (value == null)
-					value = frame.GetThis ();
+					value = ctx.Frame.GetThis ();
 
 				return value;
 			}
 			set {
-				if (frame.VirtualMachine.Version.AtLeast (2, 44)) {
+				if (ctx.Frame.VirtualMachine.Version.AtLeast (2, 44)) {
 					this.value = (Value)value;
-					frame.SetThis ((Value)value);
+					ctx.Frame.SetThis ((Value)value);
 				}
 			}
 		}
