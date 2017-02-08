@@ -66,7 +66,7 @@ namespace Mono.Debugging.Evaluation
 			try {
 				return Convert.ChangeType (sourceVal, type);
 			} catch (Exception e) {
-				throw new EvaluatorException ("Failed to convert '{0}' to type {1}: {2}", sourceVal, type.FullName, e.Message);
+				throw new EvaluatorException ("Unable to convert '{0}' to type {1}: {2}", sourceVal, type.FullName, e.Message);
 			}
 		}
 
