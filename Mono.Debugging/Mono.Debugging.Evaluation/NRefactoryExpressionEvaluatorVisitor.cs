@@ -83,7 +83,7 @@ namespace Mono.Debugging.Evaluation
 			try {
 				return Convert.ToInt64 (val);
 			} catch {
-				throw ParseError ("Unable to convert '{0}' to integer value");
+				throw ParseError ("Unable to convert '{0}' to integer value", val);
 			}
 		}
 
@@ -92,7 +92,7 @@ namespace Mono.Debugging.Evaluation
 			try {
 				return Convert.ToDouble (val);
 			} catch {
-				throw ParseError ("Unable to convert '{0}' to double value");
+				throw ParseError ("Unable to convert '{0}' to double value", val);
 			}
 		}
 
