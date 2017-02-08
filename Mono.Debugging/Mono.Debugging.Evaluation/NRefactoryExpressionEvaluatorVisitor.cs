@@ -61,7 +61,7 @@ namespace Mono.Debugging.Evaluation
 			return new NotSupportedExpressionException ();
 		}
 
-		static object ChangeTypeHandlingException (object sourceVal, Type type)
+		static object ConvertTo (object sourceVal, Type type)
 		{
 			try {
 				return Convert.ChangeType (sourceVal, type);
@@ -437,7 +437,7 @@ namespace Mono.Debugging.Evaluation
 				var targetType = GetCommonType (val1, val2);
 
 				if (targetType != typeof (IntPtr))
-					res = ChangeTypeHandlingException(res, targetType);
+					res = ConvertTo(res, targetType);
 				else
 					res = new IntPtr ((long) res);
 			}
@@ -588,7 +588,7 @@ namespace Mono.Debugging.Evaluation
 
 			if (assignmentExpression.Operator == AssignmentOperatorType.Assign) {
 				var right = assignmentExpression.Right.AcceptVisitor<ValueReference> (this);
-				SetValueHandlingException (left, right.Value, "Assignment");
+				SetValue (left, right.Value, "Assignment");
 			} else {
 				BinaryOperatorType op;
 
@@ -607,7 +607,7 @@ namespace Mono.Debugging.Evaluation
 				}
 
 				var result = EvaluateBinaryOperatorExpression (op, left, assignmentExpression.Right);
-				SetValueHandlingException (left, result.Value, "Assignment");
+				SetValue (left, result.Value, "Assignment");
 			}
 
 			return left;
@@ -755,7 +755,7 @@ namespace Mono.Debugging.Evaluation
 
 				foreach (var arg in indexerExpression.Arguments) {
 					var index = arg.AcceptVisitor<ValueReference> (this);
-					indexes[n++] = (int) ChangeTypeHandlingException (index.ObjectValue, typeof (int));
+					indexes[n++] = (int) ConvertTo (index.ObjectValue, typeof (int));
 				}
 
 				return new ArrayValueReference (ctx, target.Value, indexes);
@@ -1062,14 +1062,14 @@ namespace Mono.Debugging.Evaluation
 			switch (unaryOperatorExpression.Operator) {
 			case UnaryOperatorType.BitNot:
 				num = ~ConvertToInteger (val);
-				val = ChangeTypeHandlingException (num, val.GetType ());
+				val = ConvertTo (num, val.GetType ());
 				break;
 			case UnaryOperatorType.Minus:
 				if (val is decimal) {
 					val = -(decimal)val;
 				} else {
 					num = -ConvertToInteger (val);
-					val = ChangeTypeHandlingException (num, val.GetType ());
+					val = ConvertTo (num, val.GetType ());
 				}
 				break;
 			case UnaryOperatorType.Not:
@@ -1080,23 +1080,23 @@ namespace Mono.Debugging.Evaluation
 				break;
 			case UnaryOperatorType.PostDecrement:
 				num = ConvertToInteger (val) - 1;
-				newVal = ChangeTypeHandlingException (num, val.GetType ());
-				SetValueHandlingException (vref, ctx.Adapter.CreateValue (ctx, newVal), "Post decrement");
+				newVal = ConvertTo (num, val.GetType ());
+				SetValue (vref, ctx.Adapter.CreateValue (ctx, newVal), "Post decrement");
 				break;
 			case UnaryOperatorType.Decrement:
 				num = ConvertToInteger (val) - 1;
-				val = ChangeTypeHandlingException (num, val.GetType ());
-				SetValueHandlingException (vref, ctx.Adapter.CreateValue (ctx, val), "Decrement");
+				val = ConvertTo (num, val.GetType ());
+				SetValue (vref, ctx.Adapter.CreateValue (ctx, val), "Decrement");
 				break;
 			case UnaryOperatorType.PostIncrement:
 				num = ConvertToInteger (val) + 1;
-				newVal = ChangeTypeHandlingException (num, val.GetType ());
-				SetValueHandlingException (vref, ctx.Adapter.CreateValue (ctx, newVal), "Post increment");
+				newVal = ConvertTo (num, val.GetType ());
+				SetValue (vref, ctx.Adapter.CreateValue (ctx, newVal), "Post increment");
 				break;
 			case UnaryOperatorType.Increment:
 				num = ConvertToInteger (val) + 1;
-				val = ChangeTypeHandlingException (num, val.GetType ());
-				SetValueHandlingException (vref, ctx.Adapter.CreateValue (ctx, val), "Increment");
+				val = ConvertTo (num, val.GetType ());
+				SetValue (vref, ctx.Adapter.CreateValue (ctx, val), "Increment");
 				break;
 			case UnaryOperatorType.Plus:
 				break;
@@ -1107,7 +1107,7 @@ namespace Mono.Debugging.Evaluation
 			return LiteralValueReference.CreateObjectLiteral (ctx, expression, val);
 		}
 
-		private static void SetValueHandlingException (ValueReference valueReference, object newVal, string contextOperationName)
+		private static void SetValue (ValueReference valueReference, object newVal, string contextOperationName)
 		{
 			try {
 				valueReference.Value = newVal;
