@@ -78,12 +78,21 @@ namespace Mono.Debugging.Evaluation
 			return name;
 		}
 
-		static long GetInteger (object val)
+		static long ConvertToInteger (object val)
 		{
 			try {
 				return Convert.ToInt64 (val);
 			} catch {
-				throw ParseError ("Expected integer value.");
+				throw ParseError ("Unable to convert '{0}' to integer value");
+			}
+		}
+
+		static double ConvertToDouble (object val)
+		{
+			try {
+				return Convert.ToDouble (val);
+			} catch {
+				throw ParseError ("Unable to convert '{0}' to double value");
 			}
 		}
 
@@ -99,7 +108,7 @@ namespace Mono.Debugging.Evaluation
 				return (long) ctx.Adapter.TargetObjectToObject (ctx, result);
 			}
 
-			return Convert.ToInt64 (val);
+			return ConvertToInteger (val);
 		}
 
 		static Type GetCommonOperationType (object v1, object v2)
@@ -403,12 +412,8 @@ namespace Mono.Debugging.Evaluation
 			if (commonType == typeof (double)) {
 				double v1, v2;
 
-				try {
-					v1 = Convert.ToDouble (val1);
-					v2 = Convert.ToDouble (val2);
-				} catch {
-					throw ParseError ("Invalid operands in binary operator.");
-				}
+				v1 = ConvertToDouble (val1);
+				v2 = ConvertToDouble (val2);
 
 				res = EvaluateOperation (op, v1, v2);
 			} else {
@@ -1056,14 +1061,14 @@ namespace Mono.Debugging.Evaluation
 
 			switch (unaryOperatorExpression.Operator) {
 			case UnaryOperatorType.BitNot:
-				num = ~GetInteger (val);
+				num = ~ConvertToInteger (val);
 				val = ChangeTypeHandlingException (num, val.GetType ());
 				break;
 			case UnaryOperatorType.Minus:
 				if (val is decimal) {
 					val = -(decimal)val;
 				} else {
-					num = -GetInteger (val);
+					num = -ConvertToInteger (val);
 					val = ChangeTypeHandlingException (num, val.GetType ());
 				}
 				break;
@@ -1074,22 +1079,22 @@ namespace Mono.Debugging.Evaluation
 				val = !(bool) val;
 				break;
 			case UnaryOperatorType.PostDecrement:
-				num = GetInteger (val) - 1;
+				num = ConvertToInteger (val) - 1;
 				newVal = ChangeTypeHandlingException (num, val.GetType ());
 				SetValueHandlingException (vref, ctx.Adapter.CreateValue (ctx, newVal), "Post decrement");
 				break;
 			case UnaryOperatorType.Decrement:
-				num = GetInteger (val) - 1;
+				num = ConvertToInteger (val) - 1;
 				val = ChangeTypeHandlingException (num, val.GetType ());
 				SetValueHandlingException (vref, ctx.Adapter.CreateValue (ctx, val), "Decrement");
 				break;
 			case UnaryOperatorType.PostIncrement:
-				num = GetInteger (val) + 1;
+				num = ConvertToInteger (val) + 1;
 				newVal = ChangeTypeHandlingException (num, val.GetType ());
 				SetValueHandlingException (vref, ctx.Adapter.CreateValue (ctx, newVal), "Post increment");
 				break;
 			case UnaryOperatorType.Increment:
-				num = GetInteger (val) + 1;
+				num = ConvertToInteger (val) + 1;
 				val = ChangeTypeHandlingException (num, val.GetType ());
 				SetValueHandlingException (vref, ctx.Adapter.CreateValue (ctx, val), "Increment");
 				break;
