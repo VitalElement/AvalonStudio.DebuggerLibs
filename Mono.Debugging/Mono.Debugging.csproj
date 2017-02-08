@@ -98,6 +98,7 @@
     <Compile Include="Mono.Debugging.Evaluation\TimedEvaluator.cs" />
     <Compile Include="Mono.Debugging.Evaluation\TimeOutException.cs" />
     <Compile Include="Mono.Debugging.Evaluation\TypeValueReference.cs" />
+    <Compile Include="Mono.Debugging.Evaluation\ValueModificationException.cs" />
     <Compile Include="Mono.Debugging.Evaluation\ValueReference.cs" />
     <Compile Include="Mono.Debugging.Evaluation\UserVariableReference.cs" />
     <Compile Include="Mono.Debugging.Client\DebuggerException.cs" />
@@ -126,6 +127,7 @@
     <Compile Include="Mono.Debugging.Client\DebuggerLoggingService.cs" />
     <Compile Include="Mono.Debugging.Client\RunToCursorBreakpoint.cs" />
     <Compile Include="Mono.Debugging.Evaluation\EnumerableElementGroup.cs" />
+    <Compile Include="Mono.Debugging.Evaluation\ValueModificationUtil.cs" />
   </ItemGroup>
   <Import Project="..\Mono.Debugging.settings" />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
