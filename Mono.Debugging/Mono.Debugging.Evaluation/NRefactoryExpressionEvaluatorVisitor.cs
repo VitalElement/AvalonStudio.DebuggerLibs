@@ -89,7 +89,10 @@ namespace Mono.Debugging.Evaluation
 			try {
 				return (TTargetType) val;
 			} catch {
-				throw new EvaluatorException("'{0}' cannot be casted to {1}", val ?? "null", typeof(TTargetType).FullName);
+				if (val == null)
+					throw new EvaluatorException("'null' cannot be casted to {0}", typeof(TTargetType).FullName);
+				else
+					throw new EvaluatorException("Value '{0}' of type {1} cannot be casted to {2}", val, val.GetType ().FullName, typeof(TTargetType).FullName);
 			}
 		}
 
