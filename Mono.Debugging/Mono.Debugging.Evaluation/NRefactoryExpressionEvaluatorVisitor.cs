@@ -61,12 +61,15 @@ namespace Mono.Debugging.Evaluation
 			return new NotSupportedExpressionException ();
 		}
 
-		static object ConvertTo (object sourceVal, Type type)
+		/// <summary>
+		/// This method may perform conversion between cast-incompatible types, e.g. converts "123" to 123
+		/// </summary>
+		static object ChangeTypeTo (object sourceVal, Type type)
 		{
 			try {
 				return Convert.ChangeType (sourceVal, type);
 			} catch (Exception e) {
-				throw new EvaluatorException ("Unable to convert '{0}' to type {1}: {2}", sourceVal, type.FullName, e.Message);
+				throw new EvaluatorException ("Unable to convert '{0}' to type {1}: {2}", sourceVal ?? "null", type.FullName, e.Message);
 			}
 		}
 
@@ -78,21 +81,15 @@ namespace Mono.Debugging.Evaluation
 			return name;
 		}
 
-		static long ConvertToInteger (object val)
+		/// <summary>
+		/// Performs strong cast
+		/// </summary>
+		static TTargetType CastTo<TTargetType> (object val)
 		{
 			try {
-				return Convert.ToInt64 (val);
+				return (TTargetType) val;
 			} catch {
-				throw ParseError ("Unable to convert '{0}' to integer value", val);
-			}
-		}
-
-		static double ConvertToDouble (object val)
-		{
-			try {
-				return Convert.ToDouble (val);
-			} catch {
-				throw ParseError ("Unable to convert '{0}' to double value", val);
+				throw new EvaluatorException("'{0}' cannot be casted to {1}", val ?? "null", typeof(TTargetType).FullName);
 			}
 		}
 
@@ -108,7 +105,7 @@ namespace Mono.Debugging.Evaluation
 				return (long) ctx.Adapter.TargetObjectToObject (ctx, result);
 			}
 
-			return ConvertToInteger (val);
+			return CastTo<long> (val);
 		}
 
 		static Type GetCommonOperationType (object v1, object v2)
@@ -412,8 +409,8 @@ namespace Mono.Debugging.Evaluation
 			if (commonType == typeof (double)) {
 				double v1, v2;
 
-				v1 = ConvertToDouble (val1);
-				v2 = ConvertToDouble (val2);
+				v1 = CastTo<double> (val1);
+				v2 = CastTo<double> (val2);
 
 				res = EvaluateOperation (op, v1, v2);
 			} else {
@@ -437,7 +434,7 @@ namespace Mono.Debugging.Evaluation
 				var targetType = GetCommonType (val1, val2);
 
 				if (targetType != typeof (IntPtr))
-					res = ConvertTo(res, targetType);
+					res = ChangeTypeTo(res, targetType);
 				else
 					res = new IntPtr ((long) res);
 			}
@@ -651,14 +648,14 @@ namespace Mono.Debugging.Evaluation
 
 		public ValueReference VisitConditionalExpression (ConditionalExpression conditionalExpression)
 		{
-			ValueReference val = conditionalExpression.Condition.AcceptVisitor<ValueReference> (this);
-			if (val is TypeValueReference)
+			ValueReference valueReference = conditionalExpression.Condition.AcceptVisitor<ValueReference> (this);
+			if (valueReference is TypeValueReference)
 				throw NotSupported ();
 
-			if ((bool) val.ObjectValue)
-				return conditionalExpression.TrueExpression.AcceptVisitor<ValueReference> (this);
-
-			return conditionalExpression.FalseExpression.AcceptVisitor<ValueReference> (this);
+			var value = CastTo<bool>(valueReference.ObjectValue);
+			return value
+				? conditionalExpression.TrueExpression.AcceptVisitor<ValueReference> (this)
+				: conditionalExpression.FalseExpression.AcceptVisitor<ValueReference> (this);
 		}
 
 		public ValueReference VisitDefaultValueExpression (DefaultValueExpression defaultValueExpression)
@@ -755,7 +752,7 @@ namespace Mono.Debugging.Evaluation
 
 				foreach (var arg in indexerExpression.Arguments) {
 					var index = arg.AcceptVisitor<ValueReference> (this);
-					indexes[n++] = (int) ConvertTo (index.ObjectValue, typeof (int));
+					indexes[n++] = CastTo<int> (index.ObjectValue);
 				}
 
 				return new ArrayValueReference (ctx, target.Value, indexes);
@@ -1061,15 +1058,15 @@ namespace Mono.Debugging.Evaluation
 
 			switch (unaryOperatorExpression.Operator) {
 			case UnaryOperatorType.BitNot:
-				num = ~ConvertToInteger (val);
-				val = ConvertTo (num, val.GetType ());
+				num = ~CastTo<long> (val);
+				val = ChangeTypeTo (num, val.GetType ());
 				break;
 			case UnaryOperatorType.Minus:
 				if (val is decimal) {
 					val = -(decimal)val;
 				} else {
-					num = -ConvertToInteger (val);
-					val = ConvertTo (num, val.GetType ());
+					num = -CastTo<long> (val);
+					val = ChangeTypeTo (num, val.GetType ());
 				}
 				break;
 			case UnaryOperatorType.Not:
@@ -1079,23 +1076,23 @@ namespace Mono.Debugging.Evaluation
 				val = !(bool) val;
 				break;
 			case UnaryOperatorType.PostDecrement:
-				num = ConvertToInteger (val) - 1;
-				newVal = ConvertTo (num, val.GetType ());
+				num = CastTo<long>(val) - 1;
+				newVal = ChangeTypeTo (num, val.GetType ());
 				SetValue (vref, ctx.Adapter.CreateValue (ctx, newVal), "Post decrement");
 				break;
 			case UnaryOperatorType.Decrement:
-				num = ConvertToInteger (val) - 1;
-				val = ConvertTo (num, val.GetType ());
+				num = CastTo<long> (val) - 1;
+				val = ChangeTypeTo (num, val.GetType ());
 				SetValue (vref, ctx.Adapter.CreateValue (ctx, val), "Decrement");
 				break;
 			case UnaryOperatorType.PostIncrement:
-				num = ConvertToInteger (val) + 1;
-				newVal = ConvertTo (num, val.GetType ());
+				num = CastTo<long> (val) + 1;
+				newVal = ChangeTypeTo (num, val.GetType ());
 				SetValue (vref, ctx.Adapter.CreateValue (ctx, newVal), "Post increment");
 				break;
 			case UnaryOperatorType.Increment:
-				num = ConvertToInteger (val) + 1;
-				val = ConvertTo (num, val.GetType ());
+				num = CastTo<long> (val) + 1;
+				val = ChangeTypeTo (num, val.GetType ());
 				SetValue (vref, ctx.Adapter.CreateValue (ctx, val), "Increment");
 				break;
 			case UnaryOperatorType.Plus:
