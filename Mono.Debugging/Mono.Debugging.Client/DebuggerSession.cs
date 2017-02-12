@@ -362,7 +362,7 @@ namespace Mono.Debugging.Client
 				OnRunning ();
 				Dispatch (delegate {
 					try {
-						OnAttachToProcess (proc.Id);
+						OnAttachToProcess (proc);
 						attached = true;
 					} catch (Exception ex) {
 						// should handle exception before raising Exit event because HandleException may ignore exceptions in Exited state
@@ -1295,7 +1295,18 @@ namespace Mono.Debugging.Client
 			Catchpoint cp = (Catchpoint) be;
 			return string.Format ("Could not enable catchpoint for exception '{0}'", cp.ExceptionName);
 		}
-		
+
+		/// <summary>
+		/// Called to attach the debugger to a running process
+		/// </summary>
+		/// <param name='processId'>
+		/// Process identifier.
+		/// </param>
+		protected virtual void OnAttachToProcess (ProcessInfo processInfo)
+		{
+			OnAttachToProcess (processInfo.Id);
+		}
+
 		/// <summary>
 		/// Reports an unhandled exception in the debugger
 		/// </summary>
