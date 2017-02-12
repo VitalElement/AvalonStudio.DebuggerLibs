@@ -47,6 +47,7 @@
     <Reference Include="System.Core" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Mono.Debugging.Client\ClrProcessInfo.cs" />
     <Compile Include="Mono.Debugging.Client\IExpressionEvaluator.cs" />
     <Compile Include="Mono.Debugging.Client\Breakpoint.cs" />
     <Compile Include="Mono.Debugging.Client\DebuggerSession.cs" />
