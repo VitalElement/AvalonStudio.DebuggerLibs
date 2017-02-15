@@ -81,19 +81,11 @@ namespace Mono.Debugging.Evaluation
 			return name;
 		}
 
-		/// <summary>
-		/// Performs strong cast
-		/// </summary>
 		static TTargetType CastTo<TTargetType> (object val)
 		{
-			try {
-				return (TTargetType) val;
-			} catch {
-				if (val == null)
-					throw new EvaluatorException("'null' cannot be casted to {0}", typeof(TTargetType).FullName);
-				else
-					throw new EvaluatorException("Value '{0}' of type {1} cannot be casted to {2}", val, val.GetType ().FullName, typeof(TTargetType).FullName);
-			}
+			if (val is string && typeof(TTargetType) != typeof(string))
+				throw new EvaluatorException ("Value '{0}' of type {1} cannot be casted to {2}", val, val.GetType ().FullName, typeof(TTargetType).FullName);
+			return (TTargetType) ChangeTypeTo (val, typeof(TTargetType));
 		}
 
 		long ConvertToInt64 (object val)
