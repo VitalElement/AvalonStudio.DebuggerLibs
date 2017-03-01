@@ -19,5 +19,13 @@
 	  </PropertyGroup>
 	</Project>
   -->
+  <!-- Uncomment this for sign debugger dll's -->
+  <!--
+    <PropertyGroup>
+      <SignAssembly>true</SignAssembly>
+      <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)\Mono.Debugging\mono.debugging.snk</AssemblyOriginatorKeyFile>
+    </PropertyGroup>
+  -->
+
 </Project>
 
