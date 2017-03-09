@@ -1064,7 +1064,15 @@ namespace Mono.Debugging.Soft
 				yield break;
 			}
 
-			var interfaces = type.GetInterfaces ();
+		    TypeMirror[] interfaces = new TypeMirror[0];
+		    try {
+		        interfaces = type.GetInterfaces ();
+		    }
+		    catch (NotSupportedException e) {
+		        if (Session.VirtualMachine.Version.AtLeast (2, 19)) {    //handle errors caused by old version of runtime
+		            throw;
+		        }
+		    }
 			foreach (var intr in interfaces) {
 				var map = type.GetInterfaceMap (intr);
 				foreach (PropertyInfoMirror prop in intr.GetProperties (bindingFlags)) {
