@@ -120,7 +120,13 @@ namespace Mono.Debugging.Soft
 					// If the type hasn't already been loaded, invoke the .cctor() for types w/ the BeforeFieldInit attribute.
 					Context.Adapter.ForceLoadType (Context, declaringType);
 
-					return declaringType.GetValue (field, ((SoftEvaluationContext)Context).Thread);
+				    var softContext = Context as SoftEvaluationContext;
+				    if (softContext == null || softContext.Session.VirtualMachine.Version.AtLeast (2, 19)) {
+				        return declaringType.GetValue (field, ((SoftEvaluationContext)Context).Thread);
+				    }
+				    else {
+				        return declaringType.GetValue (field);
+				    }
 				} else if (obj is ObjectMirror) {
 					if (batch != null)
 						return batch.GetValue (field);
