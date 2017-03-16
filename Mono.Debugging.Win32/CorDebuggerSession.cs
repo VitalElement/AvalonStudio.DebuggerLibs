@@ -27,16 +27,16 @@ namespace Mono.Debugging.Win32
 		readonly object debugLock = new object ();
 		readonly object terminateLock = new object ();
 
-		CorDebugger dbg;
-		CorProcess process;
+		protected CorDebugger dbg;
+		protected CorProcess process;
 		CorThread activeThread;
 		CorStepper stepper;
 		bool terminated;
 		bool evaluating;
 		bool autoStepInto;
 		bool stepInsideDebuggerHidden=false;
-		int processId;
-		bool attaching = false;
+		protected int processId;
+		protected bool attaching = false;
 
 		static int evaluationTimestamp;
 
@@ -216,6 +216,15 @@ namespace Mono.Debugging.Win32
 		{
 			MtaThread.Run (delegate
 			{
+				var env = PrepareEnvironment (startInfo);
+				var cmdLine = PrepareCommandLine (startInfo);
+				var dir = PrepareWorkingDirectory (startInfo);
+				int flags = 0;
+				if (!startInfo.UseExternalConsole) {
+					flags = (int)CreationFlags.CREATE_NO_WINDOW;
+						flags |= DebuggerExtensions.CREATE_REDIRECT_STD;
+				}
+
 				// Create the debugger
 
 				string dversion;
@@ -226,27 +235,6 @@ namespace Mono.Debugging.Win32
 					dversion = CorDebugger.GetDefaultDebuggerVersion ();
 				}
 				dbg = new CorDebugger (dversion);
-
-				Dictionary<string, string> env = new Dictionary<string, string> ();
-				foreach (DictionaryEntry de in Environment.GetEnvironmentVariables ())
-					env[(string)de.Key] = (string)de.Value;
-
-				foreach (KeyValuePair<string, string> var in startInfo.EnvironmentVariables)
-					env[var.Key] = var.Value;
-
-				// The second parameter of CreateProcess is the command line, and it includes the application being launched
-				string cmdLine = "\"" + startInfo.Command + "\" " + startInfo.Arguments;
-
-				int flags = 0;
-				if (!startInfo.UseExternalConsole) {
-					flags = (int)CreationFlags.CREATE_NO_WINDOW;
-						flags |= DebuggerExtensions.CREATE_REDIRECT_STD;
-				}
-
-				var dir = startInfo.WorkingDirectory;
-				if (string.IsNullOrEmpty (dir))
-					dir = System.IO.Path.GetDirectoryName (startInfo.Command);
-
 				process = dbg.CreateProcess (startInfo.Command, cmdLine, dir, env, flags);
 				processId = process.Id;
 				SetupProcess (process);
@@ -255,7 +243,33 @@ namespace Mono.Debugging.Win32
 			OnStarted ();
 		}
 
-		void SetupProcess (CorProcess corProcess)
+		protected static string PrepareWorkingDirectory (DebuggerStartInfo startInfo)
+		{
+			var dir = startInfo.WorkingDirectory;
+			if (string.IsNullOrEmpty (dir))
+				dir = Path.GetDirectoryName (startInfo.Command);
+			return dir;
+		}
+
+		protected static string PrepareCommandLine (DebuggerStartInfo startInfo)
+		{
+			// The second parameter of CreateProcess is the command line, and it includes the application being launched
+			string cmdLine = "\"" + startInfo.Command + "\" " + startInfo.Arguments;
+			return cmdLine;
+		}
+
+		protected static Dictionary<string, string> PrepareEnvironment (DebuggerStartInfo startInfo)
+		{
+			Dictionary<string, string> env = new Dictionary<string, string> ();
+			foreach (DictionaryEntry de in Environment.GetEnvironmentVariables ())
+				env[(string) de.Key] = (string) de.Value;
+
+			foreach (KeyValuePair<string, string> var in startInfo.EnvironmentVariables)
+				env[var.Key] = var.Value;
+			return env;
+		}
+
+		protected void SetupProcess (CorProcess corProcess)
 		{
 			processId = corProcess.Id;
 			corProcess.OnCreateProcess += OnCreateProcess;
@@ -766,10 +780,12 @@ namespace Mono.Debugging.Win32
 
 		void OnCreateProcess (object sender, CorProcessEventArgs e)
 		{
-			if (!attaching) {
-				// Required to avoid the jit to get rid of variables too early
-				// not allowed in attach mode
+			// Required to avoid the jit to get rid of variables too early
+			// not allowed in attach mode
+			try {
 				e.Process.DesiredNGENCompilerFlags = CorDebugJITCompilerFlags.CORDEBUG_JIT_DISABLE_OPTIMIZATION;
+			} catch (Exception ex) {
+				DebuggerLoggingService.LogMessage (string.Format ("Unable to set e.Process.DesiredNGENCompilerFlags, possibly because the process was attached: {0}", ex.Message));
 			}
 			e.Process.EnableLogMessages (true);
 			e.Continue = true;

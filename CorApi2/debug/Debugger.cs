@@ -124,6 +124,14 @@ namespace Microsoft.Samples.Debugging.CorDebug
             InitFromVersion(debuggerVersion);
         }
 
+
+        [CLSCompliant(false)]
+        public CorDebugger (ICorDebug corDebug)
+        {
+            InitFromICorDebug (corDebug);
+        }
+
+
         ~CorDebugger()
         {
             if(m_debugger!=null)

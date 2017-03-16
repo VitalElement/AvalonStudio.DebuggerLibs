@@ -54,6 +54,7 @@
     <Compile Include="ArrayAdaptor.cs" />
     <Compile Include="CorDebuggerBacktrace.cs" />
     <Compile Include="CorDebuggerSession.cs" />
+    <Compile Include="CoreClrDebuggerSession.cs" />
     <Compile Include="CorEvaluationContext.cs" />
     <Compile Include="CorMethodCall.cs" />
     <Compile Include="CorObjectAdaptor.cs" />

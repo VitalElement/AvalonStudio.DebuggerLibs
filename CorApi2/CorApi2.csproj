@@ -73,6 +73,7 @@
     <Compile Include="debug\Constants.cs" />
     <Compile Include="debug\Controller.cs" />
     <Compile Include="debug\CorAPIAssemblyAttributes.cs" />
+    <Compile Include="debug\CoreClrShimUtil.cs" />
     <Compile Include="debug\Debugger.cs" />
     <Compile Include="debug\ErrorInfoEnumerator.cs" />
     <Compile Include="debug\Eval.cs" />
@@ -83,6 +84,7 @@
     <Compile Include="debug\ModuleBreakpoint.cs" />
     <Compile Include="debug\ModuleEnumerator.cs" />
     <Compile Include="debug\NativeMethods.cs" />
+    <Compile Include="debug\NativeMethodsShim.cs" />
     <Compile Include="debug\ObjectEnumerator.cs" />
     <Compile Include="debug\PdbHResult.cs" />
     <Compile Include="debug\Process.cs" />
