@@ -6,10 +6,13 @@ namespace Mono.Debugging.Win32
 {
 	public class CoreClrDebuggerSession : CorDebuggerSession
 	{
+		private readonly DbgShimInterop dbgShimInterop;
 		static readonly TimeSpan RuntimeLoadTimeout = TimeSpan.FromSeconds (1);
 
-		public CoreClrDebuggerSession (char[] badPathChars) : base (badPathChars)
+		public CoreClrDebuggerSession (char[] badPathChars, string dbgShimPath) : base (badPathChars)
 		{
+			dbgShimInterop = new DbgShimInterop(dbgShimPath);
+
 		}
 
 		protected override void OnRun (DebuggerStartInfo startInfo)
@@ -19,7 +22,8 @@ namespace Mono.Debugging.Win32
 				var env = PrepareEnvironment (startInfo);
 				var cmd = PrepareCommandLine (startInfo);
 				int procId;
-				var iCorDebug = CoreClrShimUtil.CreateICorDebugForCommand (cmd, workingDir, env, RuntimeLoadTimeout, out procId);
+				var iCorDebug = CoreClrShimUtil.CreateICorDebugForCommand (
+					dbgShimInterop, cmd, workingDir, env, RuntimeLoadTimeout, out procId);
 				dbg = new CorDebugger (iCorDebug);
 				process = dbg.DebugActiveProcess (procId, false);
 				processId = process.Id;
@@ -44,7 +48,7 @@ namespace Mono.Debugging.Win32
 			attaching = true;
 			MtaThread.Run(delegate
 			{
-				var iCorDebug = CoreClrShimUtil.CreateICorDebugForProcess (procId, RuntimeLoadTimeout);
+				var iCorDebug = CoreClrShimUtil.CreateICorDebugForProcess (dbgShimInterop, procId, RuntimeLoadTimeout);
 				dbg = new CorDebugger(iCorDebug);
 				process = dbg.DebugActiveProcess(procId, false);
 				SetupProcess(process);
