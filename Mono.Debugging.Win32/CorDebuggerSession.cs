@@ -2,7 +2,6 @@
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Data;
 using System.Diagnostics.SymbolStore;
 using System.IO;
 using System.Reflection;
@@ -18,6 +17,7 @@ using Mono.Debugging.Backend;
 using Mono.Debugging.Client;
 using Mono.Debugging.Evaluation;
 using System.Linq;
+using ISymbolReader = System.Diagnostics.SymbolStore.ISymbolReader;
 
 namespace Mono.Debugging.Win32
 {
@@ -110,6 +110,8 @@ namespace Mono.Debugging.Win32
 		public static int EvaluationTimestamp {
 			get { return evaluationTimestamp; }
 		}
+
+		public ICustomCorSymbolReaderFactory CustomSymbolReaderFactory { get; set; }
 
 		internal CorProcess Process
 		{
@@ -625,6 +627,11 @@ namespace Mono.Debugging.Win32
 				try {
 					reader = symbolBinder.GetReaderForFile (mi.RawCOMObject, file, ".",
 						SymSearchPolicies.AllowOriginalPathAccess | SymSearchPolicies.AllowReferencePathAccess);
+
+					if (reader == null && CustomSymbolReaderFactory != null) {
+						reader = CustomSymbolReaderFactory.CreateCustomSymbolReader (file);
+					}
+
 					if (reader != null) {
 						OnDebuggerOutput (false, string.Format ("Symbols for module {0} loaded\n", file));
 						// set JMC to true only when we got the reader.
@@ -1949,5 +1956,10 @@ namespace Mono.Debugging.Win32
 			if (gv != null)
 				gv.SetValue (ctx.Adapter.TargetObjectToObject (ctx, val));
 		}
+	}
+
+	public interface ICustomCorSymbolReaderFactory
+	{
+		ISymbolReader CreateCustomSymbolReader (string assemblyInfo);
 	}
 }
