@@ -882,6 +882,28 @@ namespace Mono.Debugging.Win32
 			OnStarted();
 		}
 
+		protected override void OnAttachToProcess(ProcessInfo processInfo)
+		{
+			var clrProcessInfo = processInfo as ClrProcessInfo;
+			var version = clrProcessInfo != null ? clrProcessInfo.Runtime : null;
+
+			attaching = true;
+			MtaThread.Run(delegate
+			{
+				var versions = CorDebugger.GetProcessLoadedRuntimes((int)processInfo.Id);
+				if (!versions.Any())
+					throw new InvalidOperationException(string.Format("Process {0} doesn't have .NET loaded runtimes", processInfo.Id));
+
+				if (version == null || !versions.Contains (version))
+					version = versions.Last ();
+				dbg = new CorDebugger(version);
+				process = dbg.DebugActiveProcess((int)processInfo.Id, false);
+				SetupProcess(process);
+				process.Continue(false);
+			});
+			OnStarted();
+		}
+
 		protected override void OnContinue ( )
 		{
 			MtaThread.Run (delegate
