@@ -526,7 +526,9 @@ namespace Mono.Debugger.Soft
 			for (int i = 0; i < fields.Count; ++i)
 				ids [i] = fields [i].Id;
 			try {
-				return vm.DecodeValues (vm.conn.Type_GetValues (id, ids, thread !=  null ? thread.Id : 0));
+			    if (vm.Version.AtLeast (2, 19))
+				    return vm.DecodeValues (vm.conn.Type_GetValues (id, ids, thread !=  null ? thread.Id : 0));
+			    return vm.DecodeValues (vm.conn.Type_GetValues (id, ids, 0));
 			} catch (CommandException ex) {
 				if (ex.ErrorCode == ErrorCode.INVALID_FIELDID)
 					throw new ArgumentException ("One of the fields is not valid for this type.", "fields");
