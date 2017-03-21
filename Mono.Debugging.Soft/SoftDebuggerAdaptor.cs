@@ -1383,31 +1383,37 @@ namespace Mono.Debugging.Soft
 					return tm;
 			}
 
-			var method = cx.Frame.Method;
-			if (method.IsGenericMethod && !method.IsGenericMethodDefinition) {
-				var definition = method.GetGenericMethodDefinition ();
-				var names = definition.GetGenericArguments ();
-				var types = method.GetGenericArguments ();
+		    try {
+		        var method = cx.Frame.Method;
+		        if (method.IsGenericMethod && !method.IsGenericMethodDefinition) {
+		            var definition = method.GetGenericMethodDefinition ();
+		            var names = definition.GetGenericArguments ();
+		            var types = method.GetGenericArguments ();
 
-				for (i = 0; i < names.Length; i++) {
-					if (names[i].FullName == name)
-						return types[i];
-				}
-			}
+		            for (i = 0; i < names.Length; i++) {
+		                if (names[i].FullName == name)
+		                    return types[i];
+		            }
+		        }
 
-			var declaringType = method.DeclaringType;
-			if (declaringType.IsGenericType && !declaringType.IsGenericTypeDefinition) {
-				var definition = declaringType.GetGenericTypeDefinition ();
-				var types = declaringType.GetGenericArguments ();
-				var names = definition.GetGenericArguments ();
+		        var declaringType = method.DeclaringType;
+		        if (declaringType.IsGenericType && !declaringType.IsGenericTypeDefinition) {
+		            var definition = declaringType.GetGenericTypeDefinition ();
+		            var types = declaringType.GetGenericArguments ();
+		            var names = definition.GetGenericArguments ();
 
-				for (i = 0; i < names.Length; i++) {
-					if (names[i].FullName == name)
-						return types[i];
-				}
-			}
+		            for (i = 0; i < names.Length; i++) {
+		                if (names[i].FullName == name)
+		                    return types[i];
+		            }
+		        }
+		    }
+		    catch (NotSupportedException) {
+		        if (Session.VirtualMachine.Version.AtLeast (2, 16))
+		            throw;
+		    }
 
-			return null;
+		    return null;
 		}
 
 		protected override object GetBaseTypeWithAttribute (EvaluationContext ctx, object type, object attrType)
