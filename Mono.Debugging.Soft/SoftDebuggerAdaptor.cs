@@ -579,7 +579,8 @@ namespace Mono.Debugging.Soft
 				mirType = mirType.BaseType;
 			}
 
-			var idx = OverloadResolve ((SoftEvaluationContext) ctx, mirType, null, null, null, types, candidates, true);
+			// TODO: fix indexers
+			var idx = OverloadResolve ((SoftEvaluationContext) ctx, (TypeMirror) type, null, null, null, types, candidates, true);
 			int i = candidates.IndexOf (idx);
 
 			var getter = props[i].GetGetMethod (true);
