@@ -287,8 +287,6 @@ Global
 		{DE40756E-57F6-4AF2-B155-55E3A88CCED8}.winphone_Release|Any CPU.Build.0 = Debug|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{0349A5CF-1F90-4055-A3B2-BDAA347AED71} = {66CF303B-09F8-4123-B869-0608D54B1970}
-		{19C3E201-4625-48B7-8E89-4ED9BA3BBD52} = {66CF303B-09F8-4123-B869-0608D54B1970}
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
 		StartupItem = Mono.Debugger.Soft\Mono.Debugger.Soft.csproj
