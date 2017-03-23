@@ -132,7 +132,14 @@ namespace Mono.Debugging.Client
 				return instance;
 			}
 		}
-		
+
+		public ObjectValue MessageObject {
+			get {
+				LoadMessage ();
+				return messageObject;
+			}
+		}
+
 		public bool IsEvaluating {
 			get { return exception.IsEvaluating || exception.IsEvaluatingGroup; }
 		}
