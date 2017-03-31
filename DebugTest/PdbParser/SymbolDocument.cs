@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace DebugTest.PdbParser
 {
-    class SymbolDocument : ISymbolDocument
+    public class SymbolDocument : ISymbolDocument, IComparable<ISymbolDocument>
     {
         private string _filePath;
         private Guid _documentType;
@@ -34,6 +34,11 @@ namespace DebugTest.PdbParser
         public bool HasEmbeddedSource => throw new NotImplementedException();
 
         public int SourceLength => throw new NotImplementedException();
+
+        public int CompareTo(ISymbolDocument other)
+        {
+            return this.URL.CompareTo(other.URL);
+        }
 
         public int FindClosestLine(int line)
         {

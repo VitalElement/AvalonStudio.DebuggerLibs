@@ -662,6 +662,28 @@ namespace Microsoft.Metadata.Tools
             }
         }
 
+        private int RowNumberId(Func<EntityHandle> handleFunc)
+        {
+            EntityHandle handle;
+
+            try
+            {
+                handle = handleFunc();
+            }
+            catch (BadImageFormatException)
+            {
+                return -1;
+            }
+
+            return RowNumberId(handle);
+        }
+
+        private int RowNumberId(EntityHandle handle)
+        {
+            return handle.IsNil ? -1 : _reader.GetRowNumber(handle);
+        }
+
+
         private string RowId(Func<EntityHandle> handleFunc)
         {
             EntityHandle handle;
@@ -1692,25 +1714,20 @@ namespace Microsoft.Metadata.Tools
             _writer.WriteLine();
         }
 
-        public IEnumerable<ISymbolDocument> GetDocuments()
+        public IEnumerable<SymbolDocument> GetDocuments()
         {
             foreach (var handle in _reader.Documents)
             {
                 var entry = _reader.GetDocument(handle);
-
+                
                 var result = new SymbolDocument(Literal(() => entry.Name), _reader.GetGuid(entry.Language), _reader.GetGuid(entry.HashAlgorithm));
 
                 yield return result;
             }
         }
 
-        public void GetMethodDebugInformation()
+        public IEnumerable<SymbolMethod> GetMethodDebugInformation()
         {
-            if (_reader.MethodDebugInformation.Count == 0)
-            {
-                return;
-            }
-
             foreach (var handle in _reader.MethodDebugInformation)
             {
                 if (handle.IsNil)
@@ -1719,6 +1736,7 @@ namespace Microsoft.Metadata.Tools
                 }
 
                 var entry = _reader.GetMethodDebugInformation(handle);
+
 
                 bool hasSingleDocument = false;
                 bool hasSequencePoints = false;
@@ -1752,22 +1770,16 @@ namespace Microsoft.Metadata.Tools
                     var localSignature = Token(() => entry.LocalSignature);
                 }
 
+                var rowId = 0;
+
                 if (hasSingleDocument)
                 {
-                    var document = RowId(() => entry.Document);
+                    rowId = RowNumberId(() => entry.Document);
                 }
 
-                try
-                {
-                    foreach (var sequencePoint in entry.GetSequencePoints())
-                    {
-                        var sp = SequencePoint(sequencePoint, includeDocument: !hasSingleDocument);
-                    }
-                }
-                catch (BadImageFormatException)
-                {
-                    
-                }
+                var result = new SymbolMethod(rowId, entry.GetSequencePoints(), new SymbolToken(rowId));
+
+                yield return result;
             }
         }
 

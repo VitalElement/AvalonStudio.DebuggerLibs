@@ -26,7 +26,7 @@ namespace DebugTest
 
             session.CustomSymbolReaderFactory = new PdbSymbolReaderFactory();
 
-            session.Breakpoints.Add("c:\\dev\\repos\\dotnettest\\Program.cs", 8);
+            session.Breakpoints.Add("c:\\dev\\repos\\dotnettest\\Program.cs", 9);
 
             session.TargetStarted += (sender, e) =>
             {
