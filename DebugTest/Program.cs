@@ -17,8 +17,30 @@ namespace DebugTest
 
             var startInfo = new DebuggerStartInfo() {
 
+                Command = "dotnet.exe",
+                Arguments = "c:\\dev\\repos\\dotnettest\\bin\\Debug\\netcoreapp1.1\\dotnettest.dll",
+                WorkingDirectory = "c:\\dev\\repos\\dotnettest\\bin\\Debug\\netcoreapp1.1\\",
                 UseExternalConsole = true,
                 CloseExternalConsoleOnExit = true
+            };
+
+            session.CustomSymbolReaderFactory = new PdbSymbolReaderFactory();
+
+            session.Breakpoints.Add("c:\\dev\\repos\\dotnettest\\Program.cs", 8);
+
+            session.TargetStarted += (sender, e) =>
+            {
+                Console.WriteLine("Target started.");
+            };
+
+            session.TargetHitBreakpoint += (sender, e) =>
+            {
+                Console.WriteLine("Breakpoint hit.");
+            };
+
+            session.TargetEvent += (sender, e) =>
+            {
+                Console.WriteLine(e.Type.ToString());
             };
 
             var sessionOptions = EvaluationOptions.DefaultOptions.Clone();
