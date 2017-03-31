@@ -14,6 +14,8 @@ using System.Reflection.PortableExecutable;
 using System.Text;
 using Microsoft.CodeAnalysis.Debugging;
 using Roslyn.Utilities;
+using System.Diagnostics.SymbolStore;
+using DebugTest.PdbParser;
 
 namespace Microsoft.Metadata.Tools
 {
@@ -73,7 +75,6 @@ namespace Microsoft.Metadata.Tools
 
         private MetadataVisualizer(TextWriter writer, IReadOnlyList<MetadataReader> readers, MetadataVisualizerOptions options = MetadataVisualizerOptions.None)
         {
-            _writer = writer ?? throw new ArgumentNullException(nameof(writer));
             _readers = readers ?? throw new ArgumentNullException(nameof(readers));
             _options = options;
             _signatureVisualizer = new SignatureVisualizer(this);
@@ -432,7 +433,7 @@ namespace Microsoft.Metadata.Tools
 
         private string Literal(Func<DocumentNameBlobHandle> getHandle)
         {
-            return Literal(() => (BlobHandle)getHandle(), BlobKind.DocumentName, (r, h) => "'" + StringUtilities.EscapeNonPrintableCharacters(r.GetString((DocumentNameBlobHandle)(BlobHandle)h)) + "'");
+            return Literal(() => (BlobHandle)getHandle(), BlobKind.DocumentName, (r, h) => StringUtilities.EscapeNonPrintableCharacters(r.GetString((DocumentNameBlobHandle)(BlobHandle)h)));
         }
 
         private string LiteralUtf8Blob(Func<Handle> getHandle, BlobKind kind)
@@ -1689,6 +1690,85 @@ namespace Microsoft.Metadata.Tools
             }
 
             _writer.WriteLine();
+        }
+
+        public IEnumerable<ISymbolDocument> GetDocuments()
+        {
+            foreach (var handle in _reader.Documents)
+            {
+                var entry = _reader.GetDocument(handle);
+
+                var result = new SymbolDocument(Literal(() => entry.Name), _reader.GetGuid(entry.Language), _reader.GetGuid(entry.HashAlgorithm));
+
+                yield return result;
+            }
+        }
+
+        public void GetMethodDebugInformation()
+        {
+            if (_reader.MethodDebugInformation.Count == 0)
+            {
+                return;
+            }
+
+            foreach (var handle in _reader.MethodDebugInformation)
+            {
+                if (handle.IsNil)
+                {
+                    continue;
+                }
+
+                var entry = _reader.GetMethodDebugInformation(handle);
+
+                bool hasSingleDocument = false;
+                bool hasSequencePoints = false;
+                try
+                {
+                    hasSingleDocument = !entry.Document.IsNil;
+                    hasSequencePoints = !entry.SequencePointsBlob.IsNil;
+                }
+                catch (BadImageFormatException)
+                {
+                    hasSingleDocument = hasSequencePoints = false;
+                }
+
+                var sequence = $"{MetadataTokens.GetRowNumber(handle):x}: {HeapOffset(() => entry.SequencePointsBlob)}";
+
+                if (!hasSequencePoints)
+                {
+                    continue;
+                }
+
+                _blobKinds[entry.SequencePointsBlob] = BlobKind.SequencePoints;
+
+                var kickoffMethod = entry.GetStateMachineKickoffMethod();
+                if (!kickoffMethod.IsNil)
+                {
+                    var kickOffMethod = Token(() => kickoffMethod);
+                }
+
+                if (!entry.LocalSignature.IsNil)
+                {
+                    var localSignature = Token(() => entry.LocalSignature);
+                }
+
+                if (hasSingleDocument)
+                {
+                    var document = RowId(() => entry.Document);
+                }
+
+                try
+                {
+                    foreach (var sequencePoint in entry.GetSequencePoints())
+                    {
+                        var sp = SequencePoint(sequencePoint, includeDocument: !hasSingleDocument);
+                    }
+                }
+                catch (BadImageFormatException)
+                {
+                    
+                }
+            }
         }
 
         public void WriteDocument()
