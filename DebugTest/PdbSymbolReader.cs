@@ -1,10 +1,21 @@
-﻿using System;
+﻿using Microsoft.Metadata.Tools;
+using System;
 using System.Diagnostics.SymbolStore;
+using System.Linq;
 
 namespace DebugTest
 {
     public class PdbSymbolReader : ISymbolReader
     {
+        private MetadataVisualizer _visualizer;
+
+        public PdbSymbolReader(MetadataVisualizer visualizer)
+        {
+            _visualizer = visualizer;
+
+            _visualizer.GetMethodDebugInformation();
+        }
+
         public SymbolToken UserEntryPoint => throw new NotImplementedException();
 
         public ISymbolDocument GetDocument(string url, Guid language, Guid languageVendor, Guid documentType)
@@ -14,7 +25,7 @@ namespace DebugTest
 
         public ISymbolDocument[] GetDocuments()
         {
-            throw new NotImplementedException();
+            return _visualizer.GetDocuments().ToArray();
         }
 
         public ISymbolVariable[] GetGlobalVariables()
