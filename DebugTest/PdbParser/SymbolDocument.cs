@@ -1,0 +1,53 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics.SymbolStore;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace DebugTest.PdbParser
+{
+    class SymbolDocument : ISymbolDocument
+    {
+        private string _filePath;
+        private Guid _documentType;
+        private Guid _language;
+        private Guid _checksumType;
+
+        public SymbolDocument(string filePath, Guid language, Guid checksumType)
+        {
+            _filePath = filePath;
+            _language = language;
+            _checksumType = checksumType;
+        }
+
+        public string URL => _filePath;
+
+        public Guid DocumentType => _documentType;
+
+        public Guid Language => _language;
+
+        public Guid LanguageVendor => throw new NotImplementedException();
+
+        public Guid CheckSumAlgorithmId => _language;
+
+        public bool HasEmbeddedSource => throw new NotImplementedException();
+
+        public int SourceLength => throw new NotImplementedException();
+
+        public int FindClosestLine(int line)
+        {
+            return line;
+        }
+
+        public byte[] GetCheckSum()
+        {
+            throw new NotImplementedException();
+        }
+
+        public byte[] GetSourceRange(int startLine, int startColumn, int endLine, int endColumn)
+        {
+            throw new NotImplementedException();
+        }
+    }
+}
