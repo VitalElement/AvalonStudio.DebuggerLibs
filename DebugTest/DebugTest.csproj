@@ -22,6 +22,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -43,6 +44,14 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="PdbParser\ILVisualizer.cs" />
+    <Compile Include="PdbParser\MetadataVisualizer.cs" />
+    <Compile Include="PdbParser\MetadataVisualizer.SignatureVisualizer.cs" />
+    <Compile Include="PdbParser\StringUtilities.cs" />
+    <Compile Include="PdbParser\Utilities\ExceptionUtilities.cs" />
+    <Compile Include="PdbParser\Utilities\Hash.cs" />
+    <Compile Include="PdbSymbolReader.cs" />
+    <Compile Include="PdbSymbolReaderFactory.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
@@ -50,6 +59,10 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\CorApi2\CorApi2.csproj">
+      <Project>{69136056-bfd3-4cec-bb41-d9991c79593c}</Project>
+      <Name>CorApi2</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Mono.Debugging.Win32\Mono.Debugging.Win32.csproj">
       <Project>{74704c00-5861-4f86-920c-865148a175c5}</Project>
       <Name>Mono.Debugging.Win32</Name>
@@ -58,6 +71,17 @@
       <Project>{90c99adb-7d4b-4eb4-98c2-40bd1b14c7d2}</Project>
       <Name>Mono.Debugging</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis">
+      <Version>2.0.0</Version>
+    </PackageReference>
+    <PackageReference Include="Microsoft.DiaSymReader.PortablePdb">
+      <Version>1.2.0</Version>
+    </PackageReference>
+    <PackageReference Include="System.Reflection.Metadata">
+      <Version>1.4.2</Version>
+    </PackageReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
