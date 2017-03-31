@@ -11,6 +11,7 @@ using Microsoft.Samples.Debugging.CorDebug;
 using System.Reflection;
 using System.Reflection.PortableExecutable;
 using System.Linq;
+using Microsoft.Metadata.Tools;
 
 namespace DebugTest
 {
@@ -48,7 +49,9 @@ namespace DebugTest
 
             var pdbReader = provider.GetMetadataReader();
 
-            return null;
+            var visualizer = new MetadataVisualizer(pdbReader, null, MetadataVisualizerOptions.NoHeapReferences);
+
+            return new PdbSymbolReader(visualizer);
         }
     }
 }
