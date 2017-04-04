@@ -9,25 +9,22 @@ using System.Threading.Tasks;
 namespace DebugTest.PdbParser
 {
     public class SymbolMethod : ISymbolMethod
-    {
-        private int _documentRowId;
-        private SequencePointCollection _sequencePoints;
+    {        
+        private List<SequencePoint> _sequencePoints;
         private SymbolToken _token;
-        
-        public SymbolMethod(int documentRowId, SequencePointCollection sequencePoints, SymbolToken token)
-        {
-            _documentRowId = documentRowId;
 
-            _sequencePoints = sequencePoints;
+        public SymbolMethod(ISymbolDocument document, SequencePointCollection sequencePoints, SymbolToken token)
+        {
+            _sequencePoints = sequencePoints.ToList();
 
             _token = token;
+
+            Document = document;
         }
 
-        public SequencePointCollection SequencePoints => _sequencePoints;
+        public List<SequencePoint> SequencePoints => _sequencePoints;
 
         public ISymbolDocument Document { get; set; }
-
-        public int DocumentRowId => _documentRowId;
 
         public SymbolToken Token => _token;
 
