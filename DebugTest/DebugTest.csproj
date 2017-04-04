@@ -44,14 +44,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="PdbParser\ILVisualizer.cs" />
-    <Compile Include="PdbParser\MetadataVisualizer.cs" />
-    <Compile Include="PdbParser\MetadataVisualizer.SignatureVisualizer.cs" />
-    <Compile Include="PdbParser\StringUtilities.cs" />
     <Compile Include="PdbParser\SymbolDocument.cs" />
     <Compile Include="PdbParser\SymbolMethod.cs" />
-    <Compile Include="PdbParser\Utilities\ExceptionUtilities.cs" />
-    <Compile Include="PdbParser\Utilities\Hash.cs" />
     <Compile Include="PdbSymbolReader.cs" />
     <Compile Include="PdbSymbolReaderFactory.cs" />
     <Compile Include="Program.cs" />
