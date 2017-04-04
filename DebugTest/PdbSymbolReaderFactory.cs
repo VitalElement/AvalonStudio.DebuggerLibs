@@ -11,7 +11,6 @@ using Microsoft.Samples.Debugging.CorDebug;
 using System.Reflection;
 using System.Reflection.PortableExecutable;
 using System.Linq;
-using Microsoft.Metadata.Tools;
 
 namespace DebugTest
 {
@@ -28,30 +27,24 @@ namespace DebugTest
 
         public ISymbolReader CreateCustomSymbolReader(string assemblyLocation)
         {
-            if(!File.Exists(assemblyLocation))
+            if (!File.Exists(assemblyLocation))
             {
                 return null;
             }
 
             string pdbLocation = Path.ChangeExtension(assemblyLocation, "pdb");
 
-            if(!File.Exists(pdbLocation))
+            if (!File.Exists(pdbLocation))
             {
                 return null;
             }
 
-            if(!IsPortablePdbFormat(pdbLocation))
+            if (!IsPortablePdbFormat(pdbLocation))
             {
                 return null;
             }
 
-            var provider = MetadataReaderProvider.FromPortablePdbStream(File.OpenRead(pdbLocation));
-
-            var pdbReader = provider.GetMetadataReader();
-
-            var visualizer = new MetadataVisualizer(pdbReader, null, MetadataVisualizerOptions.NoHeapReferences);
-
-            return new PdbSymbolReader(visualizer);
+            return new PdbSymbolReader(pdbLocation);
         }
     }
 }
