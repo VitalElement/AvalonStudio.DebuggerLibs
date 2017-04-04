@@ -27,6 +27,7 @@ namespace DebugTest
             session.CustomSymbolReaderFactory = new PdbSymbolReaderFactory();
 
             session.Breakpoints.Add("c:\\dev\\repos\\dotnettest\\Program.cs", 9);
+            session.Breakpoints.Add("c:\\dev\\repos\\dotnettest\\Program.cs", 18);
 
             session.TargetStarted += (sender, e) =>
             {
@@ -36,6 +37,8 @@ namespace DebugTest
             session.TargetHitBreakpoint += (sender, e) =>
             {
                 Console.WriteLine("Breakpoint hit.");
+
+                session.StepLine();
             };
 
             session.TargetEvent += (sender, e) =>
