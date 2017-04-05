@@ -21,6 +21,11 @@ namespace DebugTest.PdbParser
             _checksumType = checksumType;
         }
 
+        internal SymbolDocument()
+        {
+
+        }
+
         public string URL => _filePath;
 
         public Guid DocumentType => _documentType;
