@@ -79,6 +79,5 @@
       <Version>1.4.2</Version>
     </PackageReference>
   </ItemGroup>
-  <Import Project="..\Microsoft.CodeAnalysis.Metadata\Microsoft.CodeAnalysis.Metadata.projitems" Label="Shared" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
