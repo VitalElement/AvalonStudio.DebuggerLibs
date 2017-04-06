@@ -1,5 +1,4 @@
 ﻿using DebugTest.PdbParser;
-using Microsoft.DiaSymReader.PortablePdb;
 
 using System;
 using System.Collections.Generic;
