@@ -21,6 +21,7 @@ namespace DebugTest
                 Arguments = "c:\\dev\\repos\\dotnettest\\bin\\Debug\\netcoreapp1.1\\dotnettest.dll",
                 WorkingDirectory = "c:\\dev\\repos\\dotnettest\\bin\\Debug\\netcoreapp1.1\\",
                 UseExternalConsole = true,
+                CloseExternalConsoleOnExit = true
             };
 
             session.CustomSymbolReaderFactory = new PdbSymbolReaderFactory();
@@ -36,7 +37,7 @@ namespace DebugTest
             {
                 Console.WriteLine("Breakpoint hit.");
 
-                session.StepLine();
+                session.Continue();
             };
 
             session.TargetEvent += (sender, e) =>
