@@ -822,9 +822,15 @@ namespace Mono.Debugging.Client
 
 		~ObjectValue ()
 		{
-			if (updateCallback != null)
-				System.Runtime.Remoting.RemotingServices.Disconnect ((UpdateCallbackProxy)updateCallback.Callback);
-		}
+            if (updateCallback != null)
+            {
+#if NETCOREAPP2_0
+                Console.WriteLine("Remoting Services Disconnect not available.");
+#else
+                System.Runtime.Remoting.RemotingServices.Disconnect((UpdateCallbackProxy)updateCallback.Callback);
+#endif
+            }
+        }
 		
 		internal static void ConnectCallbacks (StackFrame parentFrame, params ObjectValue[] values)
 		{
