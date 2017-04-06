@@ -21,13 +21,11 @@ namespace DebugTest
                 Arguments = "c:\\dev\\repos\\dotnettest\\bin\\Debug\\netcoreapp1.1\\dotnettest.dll",
                 WorkingDirectory = "c:\\dev\\repos\\dotnettest\\bin\\Debug\\netcoreapp1.1\\",
                 UseExternalConsole = true,
-                CloseExternalConsoleOnExit = true
             };
 
             session.CustomSymbolReaderFactory = new PdbSymbolReaderFactory();
 
-            session.Breakpoints.Add("c:\\dev\\repos\\dotnettest\\Program.cs", 9);
-            session.Breakpoints.Add("c:\\dev\\repos\\dotnettest\\Program.cs", 18);
+            session.Breakpoints.Add("c:\\dev\\repos\\dotnettest\\Program.cs", 7);
 
             session.TargetStarted += (sender, e) =>
             {
