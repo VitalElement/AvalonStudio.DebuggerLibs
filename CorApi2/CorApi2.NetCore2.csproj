@@ -12,6 +12,10 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+  </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\CorApi\CorApi.NetCore2.csproj" />
   </ItemGroup>
