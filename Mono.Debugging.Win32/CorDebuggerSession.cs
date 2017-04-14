@@ -1126,6 +1126,7 @@ namespace Mono.Debugging.Win32
 						int line;
 						try {
 							line = doc.Document.FindClosestLine (bp.Line);
+							bp.SetLine(line);
 						} catch {
 							// Invalid line
 							binfo.SetStatus (BreakEventStatus.Invalid, string.Format("Invalid line {0}", bp.Line));
