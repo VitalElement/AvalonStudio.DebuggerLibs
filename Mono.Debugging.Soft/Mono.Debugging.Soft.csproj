@@ -76,7 +76,7 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="JetBrains.System.Reflection.Metadata, Version=1.0.0.0, Culture=neutral, PublicKeyToken=4fea49dae943e013">
-      <HintPath>..\..\..\packages\JetBrains.System.Reflection.Metadata.20170417.0.0.0\lib\net45\JetBrains.System.Reflection.Metadata.dll</HintPath>
+      <HintPath>..\packages\JetBrains.System.Reflection.Metadata.20170417.0.0.0\lib\net45\JetBrains.System.Reflection.Metadata.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
