@@ -85,6 +85,13 @@ namespace Mono.Debugging.Soft
 		readonly LinkedList<List<Event>> queuedEventSets = new LinkedList<List<Event>> ();
 		readonly Dictionary<long,long> localThreadIds = new Dictionary<long, long> ();
 		readonly List<BreakInfo> pending_bes = new List<BreakInfo> ();
+
+		readonly SourceHashChecker hashChecker = new SourceHashChecker (new Dictionary<string, Func<byte[], byte[]>> {
+			// Mono inserts unexpected byte at the start of hash for SHA, just skip it
+			{"SHA1", bytes => bytes.Skip (1).ToArray ()},
+			{"SHA256", bytes => bytes.Skip (1).ToArray ()},
+			{"MD5", bytes => bytes}
+		});
 		TypeLoadEventRequest typeLoadReq, typeLoadTypeNameReq;
 		ExceptionEventRequest unhandledExceptionRequest;
 		Dictionary<string, string> assemblyPathMap;
@@ -2875,21 +2882,11 @@ namespace Mono.Debugging.Soft
 			return false;
 		}
 
-		bool CheckFileMd5 (string file, byte[] hash)
+		bool CheckHash (string file, byte[] hash)
 		{
 			if (hash == null)
 				return false;
-
-			if (File.Exists (file)) {
-				using (var fs = File.OpenRead (file)) {
-					using (var md5 = MD5.Create ()) {
-						if (md5.ComputeHash (fs).SequenceEqual (hash)) {
-							return true;
-						}
-					}
-				}
-			}
-			return false;
+			return hashChecker.CheckHash (file, hash);
 		}
 
 		Location FindLocationByMethod (MethodMirror method, string file, int line, int column, ref bool insideTypeRange)
@@ -2909,7 +2906,7 @@ namespace Mono.Debugging.Soft
 					//1. For backward compatibility
 					//2. If full path matches user himself probably modified code and is aware of modifications
 					//OR if md5 match, useful for alternative location files with breakpoints
-					if (!PathsAreEqual (NormalizePath (srcFile), file) && !CheckFileMd5 (file, location.SourceFileHash))
+					if (!PathsAreEqual (NormalizePath (srcFile), file) && !CheckHash (file, location.SourceFileHash))
 						continue;
 					if (location.LineNumber < rangeFirstLine)
 						rangeFirstLine = location.LineNumber;

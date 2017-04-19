@@ -62,6 +62,7 @@
     <Compile Include="InstructionBreakpoint.cs" />
     <Compile Include="PropertyValueReference.cs" />
     <Compile Include="SoftDebuggerSession.cs" />
+    <Compile Include="SourceHashChecker.cs" />
     <Compile Include="VariableValueReference.cs" />
     <Compile Include="SoftEvaluationContext.cs" />
     <Compile Include="SoftDebuggerAdaptor.cs" />
