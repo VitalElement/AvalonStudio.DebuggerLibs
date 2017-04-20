@@ -126,7 +126,7 @@ namespace Mono.Debugging.Soft
 		static bool CompareHashes (byte[] actual, byte[] expected)
 		{
 			// for SHA1 hash Mono returns only first 15 bytes of it
-			var length = Math.Min (actual.Length, expected.Length);
+			var length = System.Math.Min (actual.Length, expected.Length);
 			for (int i = 0; i < length; i++) {
 				if (actual[i] != expected[i])
 					return false;
