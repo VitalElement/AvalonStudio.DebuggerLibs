@@ -1035,7 +1035,7 @@ namespace Mono.Debugging.Soft
 				string [] sourceFileList;
 				lock (pending_bes) {
 					sourceFileList = pending_bes.Where (b => b.FileName != null).SelectMany ((b, i) => new [] {
-					Path.GetFileName (b.FileName),
+					GetFileNameNormalized (b.FileName),
 					b.FileName
 					}).Distinct ().ToArray ();
 				}
@@ -1361,7 +1361,7 @@ namespace Mono.Debugging.Soft
 			if (!started)
 				return locations;
 
-			string filename = Path.GetFileName (file);
+			string filename = GetFileNameNormalized (file);
 
 			AddFileToSourceMapping (filename);
 
@@ -2372,11 +2372,12 @@ namespace Mono.Debugging.Soft
 			//full paths, from GetSourceFiles (true), are only supported by sdb protocol 2.2 and later
 			string[] sourceFiles;
 			if (vm.Version.AtLeast (2, 2)) {
-				sourceFiles = t.GetSourceFiles ().Select ((fullPath) => Path.GetFileName (fullPath)).ToArray ();
+				sourceFiles = t.GetSourceFiles ().Select (fullPath => GetFileNameNormalized(fullPath)).ToArray ();
 			} else {
 				sourceFiles = t.GetSourceFiles ();
 
 				//HACK: if mdb paths are windows paths but the sdb agent is on unix, it won't map paths to filenames correctly
+				// TODO: actually I don't known how this does work
 				if (IsWindows) {
 					for (int i = 0; i < sourceFiles.Length; i++) {
 						string s = sourceFiles[i];
@@ -2492,7 +2493,7 @@ namespace Mono.Debugging.Soft
 				}
 				foreach (var bi in tempPendingBes) {
 					var bp = (Breakpoint) bi.BreakEvent;
-					if (PathComparer.Compare (Path.GetFileName (bp.FileName), s) == 0) {
+					if (PathComparer.Compare (GetFileNameNormalized (bp.FileName), GetFileNameNormalized (s)) == 0) {
 						bool insideLoadedRange;
 						bool genericMethod;
 
@@ -2631,7 +2632,7 @@ namespace Mono.Debugging.Soft
 						continue;
 					}
 
-					path = Path.Combine (ResolveSymbolicLink (Path.GetDirectoryName (path)), Path.GetFileName (path));
+					path = Path.Combine (ResolveSymbolicLink (Path.GetDirectoryName (path)), GetFileNameNormalized (path));
 
 					return ResolveFullPath (path);
 				}
@@ -2694,11 +2695,12 @@ namespace Mono.Debugging.Soft
 
 					fileToSourceFileInfos [info.FullFilePath] = new List<SourceFileDebugInfo> ();
 
-					if (!fileToSourceFileInfos.ContainsKey (Path.GetFileName (info.FullFilePath)))
-						fileToSourceFileInfos [Path.GetFileName (info.FullFilePath)] = new List<SourceFileDebugInfo> ();
+					var fileName = GetFileNameNormalized (info.FullFilePath);
+					if (!fileToSourceFileInfos.ContainsKey (fileName))
+						fileToSourceFileInfos [fileName] = new List<SourceFileDebugInfo> ();
 
 					fileToSourceFileInfos [info.FullFilePath].Add (info);
-					fileToSourceFileInfos [Path.GetFileName (info.FullFilePath)].Add (info);
+					fileToSourceFileInfos [fileName].Add (info);
 				}
 			}
 
@@ -2739,11 +2741,12 @@ namespace Mono.Debugging.Soft
 
 					fileToSourceFileInfos [src.FileName] = new List<SourceFileDebugInfo> ();
 
-					if (!fileToSourceFileInfos.ContainsKey (Path.GetFileName (src.FileName)))
-						fileToSourceFileInfos [Path.GetFileName (src.FileName)] = new List<SourceFileDebugInfo> ();
+					var fileName = GetFileNameNormalized (src.FileName);
+					if (!fileToSourceFileInfos.ContainsKey (fileName))
+						fileToSourceFileInfos [fileName] = new List<SourceFileDebugInfo> ();
 
 					fileToSourceFileInfos [src.FileName].Add (info);
-					fileToSourceFileInfos [Path.GetFileName (src.FileName)].Add (info);
+					fileToSourceFileInfos [fileName].Add (info);
 				}
 			}
 
@@ -2808,16 +2811,11 @@ namespace Mono.Debugging.Soft
 					return false;
 
 				// Search by filename and hash
-				if (fileToSourceFileInfos.TryGetValue (Path.GetFileName (file), out sourceInfos)) {
-					using (var fs = File.OpenRead (file)) {
-						using (var md5 = MD5.Create ()) {
-							var hash = md5.ComputeHash (fs);
-							foreach (var info in sourceInfos) {
-								if (hash.SequenceEqual (info.Hash)) {
-									sourceInfo = info;
-									break;
-								}
-							}
+				if (fileToSourceFileInfos.TryGetValue (GetFileNameNormalized(file), out sourceInfos)) {
+					foreach (var info in sourceInfos) {
+						if (hashChecker.CheckHash(file, info.Hash)) {
+							sourceInfo = info;
+							break;
 						}
 					}
 				}
