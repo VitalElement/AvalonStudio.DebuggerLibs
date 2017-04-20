@@ -2566,10 +2566,18 @@ namespace Mono.Debugging.Soft
 
 		internal static string NormalizePath (string path)
 		{
-			if (!IsWindows && path.StartsWith ("\\", StringComparison.Ordinal))
+			if (!IsWindows)
 				return path.Replace ('\\', '/');
 
 			return path;
+		}
+
+		/// <summary>
+		/// Normalizes the path first and then calls Path.GetFileName()
+		/// </summary>
+		internal static string GetFileNameNormalized (string path)
+		{
+			return Path.GetFileName (NormalizePath (path));
 		}
 
 		[DllImport ("libc")]
@@ -2901,12 +2909,12 @@ namespace Mono.Debugging.Soft
 				//Console.WriteLine ("\tExamining {0}:{1}...", srcFile, location.LineNumber);
 
 				//Check if file names match
-				if (srcFile != null && PathComparer.Compare (Path.GetFileName (srcFile), Path.GetFileName (file)) == 0) {
+				if (srcFile != null && PathComparer.Compare (GetFileNameNormalized(srcFile), GetFileNameNormalized(file)) == 0) {
 					//Check if full path match(we don't care about md5 if full path match):
 					//1. For backward compatibility
 					//2. If full path matches user himself probably modified code and is aware of modifications
 					//OR if md5 match, useful for alternative location files with breakpoints
-					if (!PathsAreEqual (NormalizePath (srcFile), file) && !CheckHash (file, location.SourceFileHash))
+					if (!PathsAreEqual (NormalizePath (srcFile), NormalizePath(file)) && !CheckHash (file, location.SourceFileHash))
 						continue;
 					if (location.LineNumber < rangeFirstLine)
 						rangeFirstLine = location.LineNumber;
