@@ -1296,9 +1296,15 @@ namespace Mono.Debugging.Client
 			var bp = be as Breakpoint;
 			if (bp != null)
 				return string.Format ("Could not insert breakpoint at '{0}:{1}'", bp.FileName, bp.Line);
-			Catchpoint cp = (Catchpoint) be;
-			return string.Format ("Could not enable catchpoint for exception '{0}'", cp.ExceptionName);
-		}
+			Catchpoint cp = be as Catchpoint;
+
+            if (cp != null)
+            {
+                return string.Format("Could not enable catchpoint for exception '{0}'", cp.ExceptionName);
+            }
+
+            return "Could not enable BreakEvent for unknown breakevent type.";
+        }
 
 		/// <summary>
 		/// Called to attach the debugger to a running process
