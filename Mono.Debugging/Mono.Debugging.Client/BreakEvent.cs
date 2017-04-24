@@ -50,7 +50,7 @@ namespace Mono.Debugging.Client
 		{
 		}
 		
-		internal BreakEvent (XmlElement elem, string baseDir)
+		protected BreakEvent (XmlElement elem, string baseDir)
 		{
 			string s = elem.GetAttribute ("enabled");
 			if (s.Length > 0)
@@ -85,7 +85,7 @@ namespace Mono.Debugging.Client
 				breakIfConditionChanges = false;
 		}
 		
-		internal virtual XmlElement ToXml (XmlDocument doc, string baseDir)
+		public virtual XmlElement ToXml (XmlDocument doc, string baseDir)
 		{
 			XmlElement elem = doc.CreateElement (GetType().Name);
 			if (!enabled)

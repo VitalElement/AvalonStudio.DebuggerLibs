@@ -57,7 +57,7 @@ namespace Mono.Debugging.Client
 			}
 		}
 
-		internal override XmlElement ToXml (XmlDocument doc, string baseDir)
+		public override XmlElement ToXml (XmlDocument doc, string baseDir)
 		{
 			XmlElement elem = base.ToXml (doc, baseDir);
 			elem.SetAttribute ("exceptionName", exceptionName);

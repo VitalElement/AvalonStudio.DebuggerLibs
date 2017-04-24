@@ -71,7 +71,7 @@ namespace Mono.Debugging.Client
 				column = 1;
 		}
 
-		internal override XmlElement ToXml (XmlDocument doc, string baseDir)
+		public override XmlElement ToXml (XmlDocument doc, string baseDir)
 		{
 			XmlElement elem = base.ToXml (doc, baseDir);
 
