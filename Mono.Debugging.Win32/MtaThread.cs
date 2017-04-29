@@ -35,9 +35,9 @@ namespace Mono.Debugging.Win32
 					workDelegate = ts;
 					workError = null;
 					if (workThread == null) {
-						workThread = new Thread (MtaRunner);
+						workThread = new Thread (MtaReunner);
 						workThread.Name = "Win32 Debugger MTA Thread";
-						workThread.SetApartmentState (ApartmentState.MTA);
+						//workThread.SetApartmentState (ApartmentState.MTA);
 						workThread.IsBackground = true;
 						workThread.Start ();
 					} else
