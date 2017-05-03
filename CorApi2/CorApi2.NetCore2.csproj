@@ -2,9 +2,9 @@
 
   <PropertyGroup>
     <OutputType>Library</OutputType>
-    <TargetFrameworks>netcoreapp2.0;net462</TargetFrameworks>
+    <TargetFrameworks>netcoreapp2.0;net462</TargetFrameworks>    
     <RuntimeFrameworkVersion>2.0.0-preview1-001961-00</RuntimeFrameworkVersion>
-    <ApplicationIcon />
+    <RuntimeFrameworkVersion>2.0.0-preview2-002093-00</RuntimeFrameworkVersion>
     <OutputTypeEx>library</OutputTypeEx>
     <StartupObject />
   </PropertyGroup>
