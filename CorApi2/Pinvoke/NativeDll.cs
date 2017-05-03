@@ -83,9 +83,14 @@ namespace PinvokeKit
             object instance;
             try
             {
+                #if NETSTANDARD2_0
+                throw new NotImplementedException("Not available in notstandard");
+#else
+                
                 // Get the factory
                 IClassFactory factory;
 
+                
                 Guid iidClassFactory = Marshal.GenerateGuidForType(typeof(IClassFactory));
                 int retval = funcDllGetClassObject(&guidClsid, &iidClassFactory, out factory);
                 if (retval < 0)
@@ -94,6 +99,7 @@ namespace PinvokeKit
                 // Make the factory create the object
                 var iidIUnknown = new Guid("00000000-0000-0000-C000-000000000046");
                 factory.CreateInstance(null, iidIUnknown, out instance);
+#endif
             }
             catch (Exception ex)
             {

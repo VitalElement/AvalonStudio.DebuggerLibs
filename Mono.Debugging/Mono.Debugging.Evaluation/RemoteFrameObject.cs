@@ -59,7 +59,7 @@ namespace Mono.Debugging.Evaluation
 		{
 			lock (connectedValues) {
 				foreach (RemoteFrameObject val in connectedValues) {
-#if NETCOREAPP2_0
+#if NETSTANDARD2_0
                     Console.WriteLine ("Remoting Services Disconnect not available.");
 #else
                     System.Runtime.Remoting.RemotingServices.Disconnect (val);
