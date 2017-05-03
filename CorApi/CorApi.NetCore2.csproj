@@ -12,9 +12,5 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
-  <ItemGroup>
-    <PackageReference Include="System.Collections" Version="4.4.0-beta-24913-02" />
-    <PackageReference Include="System.Runtime.Extensions" Version="4.4.0-beta-24913-02" />
-    <PackageReference Include="System.Runtime.InteropServices" Version="4.4.0-beta-24913-02" />
-  </ItemGroup>
+  
 </Project>
