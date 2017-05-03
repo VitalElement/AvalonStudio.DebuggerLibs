@@ -588,7 +588,8 @@ namespace Mono.Debugging.Client
 				EventHandler<NotificationEventArgs> targetEvent = TargetNotificationSent;
 				if (targetEvent != null)
 					targetEvent (this, new NotificationEventArgs () {
-						Message = "Failed to set next statement: " + e.Message
+						Message = "Failed to set next statement: " + e.Message,
+						IsError = true
 					});
 			}
 		}
@@ -1713,6 +1714,7 @@ namespace Mono.Debugging.Client
 	public class NotificationEventArgs: EventArgs
 	{
 		public string Message { get; internal set; }
+		public bool IsError { get; internal set; }
 	}
 	
 	public interface IConnectionDialog : IDisposable
