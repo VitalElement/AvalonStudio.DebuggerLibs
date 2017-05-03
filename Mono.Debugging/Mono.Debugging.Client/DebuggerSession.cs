@@ -1356,7 +1356,7 @@ namespace Mono.Debugging.Client
 		/// When set, operations such as OnRun, OnAttachToProcess, OnStepLine, etc, are run in
 		/// a background thread, so it will not block the caller of the corresponding public methods.
 		/// </summary>
-		protected bool UseOperationThread { get; set; }
+		public bool UseOperationThread { get; set; }
 		
 		/// <summary>
 		/// Called to start the execution of the debugger

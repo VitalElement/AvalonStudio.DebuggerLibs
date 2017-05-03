@@ -3439,6 +3439,13 @@ namespace Mono.Debugging.Soft
 		readonly LinkedList<List<Event>> queuedEventSets = new LinkedList<List<Event>> ();
 		readonly Dictionary<long,long> localThreadIds = new Dictionary<long, long> ();
 		readonly List<BreakInfo> pending_bes = new List<BreakInfo> ();
+
+		readonly SourceHashChecker hashChecker = new SourceHashChecker (new Dictionary<string, Func<byte[], byte[]>> {
+			// Mono inserts unexpected byte at the start of hash for SHA, just skip it
+			{"SHA1", bytes => bytes.Skip (1).ToArray ()},
+			{"SHA256", bytes => bytes.Skip (1).ToArray ()},
+			{"MD5", bytes => bytes}
+		});
 		TypeLoadEventRequest typeLoadReq, typeLoadTypeNameReq;
 		ExceptionEventRequest unhandledExceptionRequest;
 		Dictionary<string, string> assemblyPathMap;
@@ -4382,7 +4389,7 @@ namespace Mono.Debugging.Soft
 				string [] sourceFileList;
 				lock (pending_bes) {
 					sourceFileList = pending_bes.Where (b => b.FileName != null).SelectMany ((b, i) => new [] {
-					Path.GetFileName (b.FileName),
+					GetFileNameNormalized (b.FileName),
 					b.FileName
 					}).Distinct ().ToArray ();
 				}
@@ -4708,7 +4715,7 @@ namespace Mono.Debugging.Soft
 			if (!started)
 				return locations;
 
-			string filename = Path.GetFileName (file);
+			string filename = GetFileNameNormalized (file);
 
 			AddFileToSourceMapping (filename);
 
@@ -4941,9 +4948,8 @@ namespace Mono.Debugging.Soft
 
 			try {
 				vm.Resume ();
-			} catch (VMNotSuspendedException) {
-				if (type != EventType.VMStart && vm.Version.AtLeast (2, 2))
-					throw;
+			} catch (VMNotSuspendedException ex) {
+				DebuggerLoggingService.LogMessage(string.Format("vm.Resume() has thrown an exception in HandleEventSet(): {0}", ex.Message));
 			}
 		}
 
@@ -5719,11 +5725,12 @@ namespace Mono.Debugging.Soft
 			//full paths, from GetSourceFiles (true), are only supported by sdb protocol 2.2 and later
 			string[] sourceFiles;
 			if (vm.Version.AtLeast (2, 2)) {
-				sourceFiles = t.GetSourceFiles ().Select ((fullPath) => Path.GetFileName (fullPath)).ToArray ();
+				sourceFiles = t.GetSourceFiles ().Select (fullPath => GetFileNameNormalized(fullPath)).ToArray ();
 			} else {
 				sourceFiles = t.GetSourceFiles ();
 
 				//HACK: if mdb paths are windows paths but the sdb agent is on unix, it won't map paths to filenames correctly
+				// TODO: actually I don't known how this does work
 				if (IsWindows) {
 					for (int i = 0; i < sourceFiles.Length; i++) {
 						string s = sourceFiles[i];
@@ -5839,7 +5846,7 @@ namespace Mono.Debugging.Soft
 				}
 				foreach (var bi in tempPendingBes) {
 					var bp = (Breakpoint) bi.BreakEvent;
-					if (PathComparer.Compare (Path.GetFileName (bp.FileName), s) == 0) {
+					if (PathComparer.Compare (GetFileNameNormalized (bp.FileName), GetFileNameNormalized (s)) == 0) {
 						bool insideLoadedRange;
 						bool genericMethod;
 
@@ -5913,10 +5920,18 @@ namespace Mono.Debugging.Soft
 
 		internal static string NormalizePath (string path)
 		{
-			if (!IsWindows && path.StartsWith ("\\", StringComparison.Ordinal))
+			if (!IsWindows)
 				return path.Replace ('\\', '/');
 
 			return path;
+		}
+
+		/// <summary>
+		/// Normalizes the path first and then calls Path.GetFileName()
+		/// </summary>
+		internal static string GetFileNameNormalized (string path)
+		{
+			return Path.GetFileName (NormalizePath (path));
 		}
 
 		[DllImport ("libc")]
@@ -5970,7 +5985,7 @@ namespace Mono.Debugging.Soft
 						continue;
 					}
 
-					path = Path.Combine (ResolveSymbolicLink (Path.GetDirectoryName (path)), Path.GetFileName (path));
+					path = Path.Combine (ResolveSymbolicLink (Path.GetDirectoryName (path)), GetFileNameNormalized (path));
 
 					return ResolveFullPath (path);
 				}
@@ -6033,11 +6048,12 @@ namespace Mono.Debugging.Soft
 
 					fileToSourceFileInfos [info.FullFilePath] = new List<SourceFileDebugInfo> ();
 
-					if (!fileToSourceFileInfos.ContainsKey (Path.GetFileName (info.FullFilePath)))
-						fileToSourceFileInfos [Path.GetFileName (info.FullFilePath)] = new List<SourceFileDebugInfo> ();
+					var fileName = GetFileNameNormalized (info.FullFilePath);
+					if (!fileToSourceFileInfos.ContainsKey (fileName))
+						fileToSourceFileInfos [fileName] = new List<SourceFileDebugInfo> ();
 
 					fileToSourceFileInfos [info.FullFilePath].Add (info);
-					fileToSourceFileInfos [Path.GetFileName (info.FullFilePath)].Add (info);
+					fileToSourceFileInfos [fileName].Add (info);
 				}
 			}
 
@@ -6078,11 +6094,12 @@ namespace Mono.Debugging.Soft
 
 					fileToSourceFileInfos [src.FileName] = new List<SourceFileDebugInfo> ();
 
-					if (!fileToSourceFileInfos.ContainsKey (Path.GetFileName (src.FileName)))
-						fileToSourceFileInfos [Path.GetFileName (src.FileName)] = new List<SourceFileDebugInfo> ();
+					var fileName = GetFileNameNormalized (src.FileName);
+					if (!fileToSourceFileInfos.ContainsKey (fileName))
+						fileToSourceFileInfos [fileName] = new List<SourceFileDebugInfo> ();
 
 					fileToSourceFileInfos [src.FileName].Add (info);
-					fileToSourceFileInfos [Path.GetFileName (src.FileName)].Add (info);
+					fileToSourceFileInfos [fileName].Add (info);
 				}
 			}
 
@@ -6147,16 +6164,11 @@ namespace Mono.Debugging.Soft
 					return false;
 
 				// Search by filename and hash
-				if (fileToSourceFileInfos.TryGetValue (Path.GetFileName (file), out sourceInfos)) {
-					using (var fs = File.OpenRead (file)) {
-						using (var md5 = MD5.Create ()) {
-							var hash = md5.ComputeHash (fs);
-							foreach (var info in sourceInfos) {
-								if (hash.SequenceEqual (info.Hash)) {
-									sourceInfo = info;
-									break;
-								}
-							}
+				if (fileToSourceFileInfos.TryGetValue (GetFileNameNormalized(file), out sourceInfos)) {
+					foreach (var info in sourceInfos) {
+						if (hashChecker.CheckHash(file, info.Hash)) {
+							sourceInfo = info;
+							break;
 						}
 					}
 				}
@@ -6229,21 +6241,11 @@ namespace Mono.Debugging.Soft
 			return false;
 		}
 
-		bool CheckFileMd5 (string file, byte[] hash)
+		bool CheckHash (string file, byte[] hash)
 		{
 			if (hash == null)
 				return false;
-
-			if (File.Exists (file)) {
-				using (var fs = File.OpenRead (file)) {
-					using (var md5 = MD5.Create ()) {
-						if (md5.ComputeHash (fs).SequenceEqual (hash)) {
-							return true;
-						}
-					}
-				}
-			}
-			return false;
+			return hashChecker.CheckHash (file, hash);
 		}
 
 		Location FindLocationByMethod (MethodMirror method, string file, int line, int column, ref bool insideTypeRange)
@@ -6258,12 +6260,12 @@ namespace Mono.Debugging.Soft
 				//Console.WriteLine ("\tExamining {0}:{1}...", srcFile, location.LineNumber);
 
 				//Check if file names match
-				if (srcFile != null && PathComparer.Compare (Path.GetFileName (srcFile), Path.GetFileName (file)) == 0) {
+				if (srcFile != null && PathComparer.Compare (GetFileNameNormalized(srcFile), GetFileNameNormalized(file)) == 0) {
 					//Check if full path match(we don't care about md5 if full path match):
 					//1. For backward compatibility
 					//2. If full path matches user himself probably modified code and is aware of modifications
 					//OR if md5 match, useful for alternative location files with breakpoints
-					if (!PathsAreEqual (NormalizePath (srcFile), file) && !CheckFileMd5 (file, location.SourceFileHash))
+					if (!PathsAreEqual (NormalizePath (srcFile), NormalizePath(file)) && !CheckHash (file, location.SourceFileHash))
 						continue;
 					if (location.LineNumber < rangeFirstLine)
 						rangeFirstLine = location.LineNumber;
