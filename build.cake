@@ -316,7 +316,7 @@ Task("Publish-MyGet")
     .WithCriteria(() => isMainRepo)
     .WithCriteria(() => isMasterBranch)        
     .WithCriteria(()=> isRunningOnAppVeyor)
-    //.WithCriteria(()=> isTagged)
+    .WithCriteria(()=> isTagged)
     .Does(() =>
 {
     var apiKey = EnvironmentVariable("MYGET_API_KEY");
