@@ -1,6 +1,8 @@
 bin
 obj
 packages
+tools/
+artifacts/
 *~
 *.sln.cache
 *.suo
@@ -12,3 +14,4 @@ packages
 *.mdb
 .DS_Store
 Makefile.in
+
