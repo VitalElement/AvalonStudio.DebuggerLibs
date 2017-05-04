@@ -35,7 +35,7 @@ var configuration = Argument("configuration", "Release");
 ///////////////////////////////////////////////////////////////////////////////
 
 var MainRepo = "VitalElement/debugger-libs";
-var MasterBranch = "master";
+var MasterBranch = "avalon-studio";
 var ReleasePlatform = "Any CPU";
 var ReleaseConfiguration = "Release";
 
