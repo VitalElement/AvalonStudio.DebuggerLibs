@@ -57,8 +57,7 @@ var isTagged = BuildSystem.AppVeyor.Environment.Repository.Tag.IsTag
                && !string.IsNullOrWhiteSpace(BuildSystem.AppVeyor.Environment.Repository.Tag.Name);
 var isReleasable = StringComparer.OrdinalIgnoreCase.Equals(ReleasePlatform, platform) 
                    && StringComparer.OrdinalIgnoreCase.Equals(ReleaseConfiguration, configuration);
-var isMyGetRelease = !isTagged && isReleasable;
-var isNuGetRelease = isTagged && isReleasable;
+var isMyGetRelease = true;
 
 ///////////////////////////////////////////////////////////////////////////////
 // VERSION
@@ -316,8 +315,7 @@ Task("Publish-MyGet")
     .WithCriteria(() => !isLocalBuild)
     .WithCriteria(() => !isPullRequest)
     .WithCriteria(() => isMainRepo)
-    .WithCriteria(() => isMasterBranch)    
-    .WithCriteria(()=> isReleasable)
+    .WithCriteria(() => isMasterBranch)        
     .WithCriteria(()=> isRunningOnAppVeyor)
     .WithCriteria(()=> isTagged)
     .Does(() =>
