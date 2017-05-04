@@ -1,12 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net46</TargetFrameworks>    
+    <TargetFrameworks>netstandard2.0</TargetFrameworks>
+    <RuntimeFrameworkVersion>2.0.0-preview2-002093-00</RuntimeFrameworkVersion>
+    <PackageTargetFallback>$(PackageTargetFallback);net46</PackageTargetFallback>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="ICSharpCode.NRefactory" Version="5.5.1" />
-    <PackageReference Include="System.Runtime" Version="4.4.0-beta-24913-02" />
     <PackageReference Include="System.Xml.XmlDocument" Version="4.3.0" />
   </ItemGroup>
 
