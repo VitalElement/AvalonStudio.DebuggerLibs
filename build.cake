@@ -182,6 +182,7 @@ var nuspecNuGetBehaviors = new NuGetPackSettings()
     Files = new []
     {
         new NuSpecContent { Source = "Mono.Debugging/bin/" + configuration + "/netstandard2.0/Mono.Debugging.dll", Target = "lib/netstandard2.0" },
+        new NuSpecContent { Source = "Mono.Debugging/bin/" + configuration + "/net46/Mono.Debugging.dll", Target = "lib/net46" },
     },
     BasePath = Directory("./"),
     OutputDirectory = nugetRoot
@@ -214,6 +215,9 @@ nuspecNuGetBehaviors = new NuGetPackSettings()
         new NuSpecContent { Source = "Mono.Debugging.Win32/bin/" + configuration + "/netstandard2.0/Mono.Debugging.Win32.dll", Target = "lib/netstandard2.0" },
         new NuSpecContent { Source = "Mono.Debugging.Win32/bin/" + configuration + "/netstandard2.0/CorApi.NetCore2.dll", Target = "lib/netstandard2.0" },
         new NuSpecContent { Source = "Mono.Debugging.Win32/bin/" + configuration + "/netstandard2.0/CorApi2.NetCore2.dll", Target = "lib/netstandard2.0" },
+        new NuSpecContent { Source = "Mono.Debugging.Win32/bin/" + configuration + "/net46/Mono.Debugging.Win32.dll", Target = "lib/net46" },
+        new NuSpecContent { Source = "Mono.Debugging.Win32/bin/" + configuration + "/net46/CorApi.NetCore2.dll", Target = "lib/net46" },
+        new NuSpecContent { Source = "Mono.Debugging.Win32/bin/" + configuration + "/net46/CorApi2.NetCore2.dll", Target = "lib/net46" },
     },
     BasePath = Directory("./"),
     OutputDirectory = nugetRoot
