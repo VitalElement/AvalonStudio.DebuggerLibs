@@ -255,7 +255,6 @@ Information("IsMasterBranch: " + isMasterBranch);
 Information("IsTagged: " + isTagged);
 Information("IsReleasable: " + isReleasable);
 Information("IsMyGetRelease: " + isMyGetRelease);
-Information("IsNuGetRelease: " + isNuGetRelease);
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -317,7 +316,7 @@ Task("Publish-MyGet")
     .WithCriteria(() => isMainRepo)
     .WithCriteria(() => isMasterBranch)        
     .WithCriteria(()=> isRunningOnAppVeyor)
-    .WithCriteria(()=> isTagged)
+    //.WithCriteria(()=> isTagged)
     .Does(() =>
 {
     var apiKey = EnvironmentVariable("MYGET_API_KEY");
