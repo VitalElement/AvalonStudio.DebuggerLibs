@@ -126,6 +126,11 @@ namespace Mono.Debugging.Client
 		/// of an expression evaluation which can't be aborted.
 		/// </summary>
 		public event EventHandler<BusyStateEventArgs> BusyStateChanged;
+
+		/// <summary>
+		/// Custom event handler; raised when debugger send notifications
+		/// </summary>
+		public event EventHandler<NotificationEventArgs> TargetNotificationSent;
 		
 		protected DebuggerSession ()
 		{
@@ -537,22 +542,31 @@ namespace Mono.Debugging.Client
 		/// <param name="column">Column.</param>
 		public void SetNextStatement (string fileName, int line, int column)
 		{
-			if (fileName == null)
-				throw new ArgumentNullException ("fileName");
+			try {
+				if (fileName == null)
+					throw new ArgumentNullException ("fileName");
 
-			if (fileName.Length == 0)
-				throw new ArgumentException ("Path cannot be empty.", "fileName");
+				if (fileName.Length == 0)
+					throw new ArgumentException ("Path cannot be empty.", "fileName");
 
-			if (line < 1)
-				throw new ArgumentOutOfRangeException ("line");
+				if (line < 1)
+					throw new ArgumentOutOfRangeException ("line");
 
-			if (column < 1)
-				throw new ArgumentOutOfRangeException ("column");
+				if (column < 1)
+					throw new ArgumentOutOfRangeException ("column");
 
-			if (!IsConnected || IsRunning || !CanSetNextStatement)
-				throw new NotSupportedException ();
+				if (!IsConnected || IsRunning || !CanSetNextStatement)
+					throw new NotSupportedException ();
 
-			OnSetNextStatement (ActiveThread.Id, fileName, line, column);
+				OnSetNextStatement (ActiveThread.Id, fileName, line, column);
+			}
+			catch (Exception e) {
+				EventHandler<NotificationEventArgs> targetEvent = TargetNotificationSent;
+				if (targetEvent != null)
+					targetEvent (this, new NotificationEventArgs () {
+						Message = "Failed to set next statement: " + e.Message
+					});
+			}
 		}
 
 		/// <summary>
@@ -561,13 +575,23 @@ namespace Mono.Debugging.Client
 		/// <param name="ilOffset">The IL offset.</param>
 		public void SetNextStatement (int ilOffset)
 		{
-			if (ilOffset < 0)
-				throw new ArgumentOutOfRangeException ("ilOffset");
+			try {
+				if (ilOffset < 0)
+					throw new ArgumentOutOfRangeException ("ilOffset");
 
-			if (!IsConnected || IsRunning || !CanSetNextStatement)
-				throw new NotSupportedException ();
+				if (!IsConnected || IsRunning || !CanSetNextStatement)
+					throw new NotSupportedException ();
 
-			OnSetNextStatement (ActiveThread.Id, ilOffset);
+				OnSetNextStatement (ActiveThread.Id, ilOffset);
+			}
+			catch (Exception e) {
+				EventHandler<NotificationEventArgs> targetEvent = TargetNotificationSent;
+				if (targetEvent != null)
+					targetEvent (this, new NotificationEventArgs () {
+						Message = "Failed to set next statement: " + e.Message,
+						IsError = true
+					});
+			}
 		}
 		
 		/// <summary>
@@ -1691,6 +1715,12 @@ namespace Mono.Debugging.Client
 		public bool IsBusy { get; internal set; }
 		
 		public string Description { get; internal set; }
+	}
+
+	public class NotificationEventArgs: EventArgs
+	{
+		public string Message { get; internal set; }
+		public bool IsError { get; internal set; }
 	}
 	
 	public interface IConnectionDialog : IDisposable
