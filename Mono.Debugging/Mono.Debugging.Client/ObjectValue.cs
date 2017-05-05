@@ -824,7 +824,7 @@ namespace Mono.Debugging.Client
 		{
             if (updateCallback != null)
             {
-#if NETSTANDARD2_0
+#if NETCOREAPP2_0
                 Console.WriteLine("Remoting Services Disconnect not available.");
 #else
                 System.Runtime.Remoting.RemotingServices.Disconnect((UpdateCallbackProxy)updateCallback.Callback);
