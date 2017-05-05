@@ -120,7 +120,7 @@ namespace Microsoft.Samples.Debugging.CorSymbolStore
         public SymbolBinder()
         {
             Guid CLSID_CorSymBinder = new Guid("0A29FF9E-7F9C-4437-8B11-F424491E3931");
-            m_binder = (ISymUnmanagedBinder3)Activator.CreateInstance(Type.GetTypeFromCLSID(CLSID_CorSymBinder));
+           // m_binder = (ISymUnmanagedBinder3)Activator.CreateInstance(Type.GetTypeFromCLSID(CLSID_CorSymBinder));
         }
         
         /// <include file='doc\symbinder.uex' path='docs/doc[@for="SymbolBinder.GetReader"]/*' />
@@ -128,6 +128,12 @@ namespace Microsoft.Samples.Debugging.CorSymbolStore
                                           String searchPath)
         {
             ISymUnmanagedReader reader = null;
+
+            if(m_binder == null)
+            {
+                return null;
+            }
+
             int hr = m_binder.GetReaderForFile(importer, filename, searchPath, out reader);
             if (IsFailingResultNormal(hr))
             {
