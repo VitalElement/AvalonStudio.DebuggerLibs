@@ -19,8 +19,8 @@ namespace PinvokeKit
                 RuntimePlatform = Platform.Windows;
             else
             {
-                if(!IsRunningOnMono)
-                    throw new Exception("Running on non-Mono runtime is not supported under Unix");
+                //if(!IsRunningOnMono)
+                  //  throw new Exception("Running on non-Mono runtime is not supported under Unix");
                 RuntimePlatform = PlatformUtilUnix.GetUnixPlatform();
             }
         }
