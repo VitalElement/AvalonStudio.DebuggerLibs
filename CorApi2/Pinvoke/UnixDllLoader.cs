@@ -14,7 +14,7 @@ namespace PinvokeKit
 
         public IntPtr LoadLibrary(string absoluteDllPath)
         {
-            if (File.Exists(absoluteDllPath) )
+            if (!File.Exists(absoluteDllPath) )
                 throw new ArgumentException("Path is not exists", "absoluteDllPath");
 
             ResetLastError();
