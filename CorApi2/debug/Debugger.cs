@@ -20,7 +20,6 @@ using System.Collections.Generic;
 using Microsoft.Samples.Debugging.CorPublish.Metahost;
 using Microsoft.Win32.SafeHandles;
 
-
 namespace Microsoft.Samples.Debugging.CorDebug
 {
     /**
@@ -129,6 +128,11 @@ namespace Microsoft.Samples.Debugging.CorDebug
         public CorDebugger (ICorDebug corDebug)
         {
             InitFromICorDebug (corDebug);
+        }
+
+        public CorDebugger(CoreDebugger.LocalDebugger corDebug)
+        {
+            InitFromCorDebug(corDebug);
         }
 
 
@@ -339,9 +343,9 @@ namespace Microsoft.Samples.Debugging.CorDebug
          */
         public CorProcess DebugActiveProcess (int processId, bool win32Attach)
         {
-            ICorDebugProcess proc = null;
-            m_debugger.DebugActiveProcess ((uint)processId, win32Attach ? 1 : 0, out proc);
-            return CorProcess.GetCorProcess(proc);
+            CoreDebugger.Process proc = null;
+            _debugger.DebugActiveProcess (processId, new SharpDX.Mathematics.Interop.RawBool(win32Attach), out proc);
+            return null;// CorProcess.GetCorProcess(proc);
         }
 
         /**
@@ -417,8 +421,19 @@ namespace Microsoft.Samples.Debugging.CorDebug
             
             m_debugger = rawDebuggingAPI;
             m_debugger.Initialize ();
-            m_debugger.SetManagedHandler (new ManagedCallback(this));
-    	}            
+             m_debugger.SetManagedHandler (new ManagedCallback(this));
+    	}
+
+        private void InitFromCorDebug(CoreDebugger.LocalDebugger rawDebuggingAPI)
+        {
+            Debug.Assert(rawDebuggingAPI != null);
+            if (rawDebuggingAPI == null)
+                throw new ArgumentException("Cannot be null.", "rawDebugggingAPI");
+
+            _debugger = rawDebuggingAPI;
+            _debugger.Initialize();
+            _debugger.SetManagedHandler(CorApi.Portable.ManagedCallbackShadow.ToCallbackPtr(new CoreDe(this)));
+        }
 
         /**
          * Helper for invoking events.  Checks to make sure that handlers
@@ -484,8 +499,8 @@ namespace Microsoft.Samples.Debugging.CorDebug
             private CorDebugger m_outer;
         }
 
-         
-        
+
+        private CoreDebugger.LocalDebugger _debugger = null;
         private ICorDebug m_debugger = null;
     } /* class Debugger */
 
