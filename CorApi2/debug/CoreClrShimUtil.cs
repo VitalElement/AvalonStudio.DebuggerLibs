@@ -33,7 +33,7 @@ namespace Microsoft.Samples.Debugging.CorDebug
         }
 
         [CLSCompliant(false)]
-        public static CoreDebugger.LocalDebugger CreateCorDebugForCommand(DbgShimInterop dbgShimInterop, string command, string workingDir,
+        public static CorApi.Portable.LocalDebugger CreateCorDebugForCommand(DbgShimInterop dbgShimInterop, string command, string workingDir,
             IDictionary<string, string> env, TimeSpan runtimeLoadTimeout, out int procId)
         {
             unsafe
@@ -68,10 +68,10 @@ namespace Microsoft.Samples.Debugging.CorDebug
             }
         }
 
-        private static unsafe CoreDebugger.LocalDebugger CreateCorDebugImpl(DbgShimInterop dbgShimInterop, uint processId, TimeSpan runtimeLoadTimeout, void* resumeHandle)
+        private static unsafe CorApi.Portable.LocalDebugger CreateCorDebugImpl(DbgShimInterop dbgShimInterop, uint processId, TimeSpan runtimeLoadTimeout, void* resumeHandle)
         {
             var waiter = new ManualResetEvent(false);
-            CoreDebugger.LocalDebugger corDebug = null;
+            CorApi.Portable.LocalDebugger corDebug = null;
             Exception callbackException = null;
             void* token;
             DbgShimInterop.RuntimeStartupCallback callback = delegate (void* pCordb, void* parameter, int hr) {
@@ -82,7 +82,7 @@ namespace Microsoft.Samples.Debugging.CorDebug
                         Marshal.ThrowExceptionForHR(hr);
                     }
                     
-                    corDebug = SharpDX.ComObject.FromPointer<CoreDebugger.LocalDebugger>((IntPtr)pCordb);
+                    corDebug = SharpDX.ComObject.FromPointer<CorApi.Portable.LocalDebugger>((IntPtr)pCordb);
                 }
                 catch (Exception e)
                 {
@@ -122,7 +122,7 @@ namespace Microsoft.Samples.Debugging.CorDebug
                         Marshal.ThrowExceptionForHR (hr);
                     }
 
-                    var debugger = SharpDX.ComObject.FromPointer<CoreDebugger.LocalDebugger>((IntPtr)pCordb);
+                    var debugger = SharpDX.ComObject.FromPointer<CorApi.Portable.LocalDebugger>((IntPtr)pCordb);
 
                     var unknown = Marshal.GetObjectForIUnknown ((IntPtr) pCordb);
                     corDebug = (ICorDebug) unknown;
