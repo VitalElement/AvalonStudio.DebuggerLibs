@@ -19,7 +19,6 @@ using Microsoft.Samples.Debugging.Extensions;
 using System.Collections.Generic;
 using Microsoft.Samples.Debugging.CorPublish.Metahost;
 using Microsoft.Win32.SafeHandles;
-using CorApi.Portable;
 
 namespace Microsoft.Samples.Debugging.CorDebug
 {
@@ -131,7 +130,7 @@ namespace Microsoft.Samples.Debugging.CorDebug
             InitFromICorDebug (corDebug);
         }
 
-        public CorDebugger(CoreDebugger.LocalDebugger corDebug)
+        public CorDebugger(CorApi.Portable.LocalDebugger corDebug)
         {            
             InitFromCorDebug(corDebug);
         }
@@ -342,9 +341,9 @@ namespace Microsoft.Samples.Debugging.CorDebug
         /** 
          * Attach to an active process
          */
-        public CoreDebugger.Process DebugActiveProcess (int processId, bool win32Attach)
+        public CorApi.Portable.Process DebugActiveProcess (int processId, bool win32Attach)
         {
-            CoreDebugger.Process proc = null;
+            CorApi.Portable.Process proc = null;
             _debugger.DebugActiveProcess (processId, new SharpDX.Mathematics.Interop.RawBool(win32Attach), out proc);
             return proc;
         }
@@ -425,7 +424,7 @@ namespace Microsoft.Samples.Debugging.CorDebug
              m_debugger.SetManagedHandler (new ManagedCallback(this));
     	}
 
-        private void InitFromCorDebug(CoreDebugger.LocalDebugger rawDebuggingAPI)
+        private void InitFromCorDebug(CorApi.Portable.LocalDebugger rawDebuggingAPI)
         {
             Debug.Assert(rawDebuggingAPI != null);
             if (rawDebuggingAPI == null)
@@ -434,7 +433,7 @@ namespace Microsoft.Samples.Debugging.CorDebug
             _debugger = rawDebuggingAPI;
             _debugger.Initialize();
 
-            _debugger.ManagedHandler_ = new ManagedCallbackImpl().GetNewIntPtr();
+            _debugger.ManagedHandler_ = new CorApi.Portable.ManagedCallbackImpl().GetNewIntPtr();
         }
 
         /**
@@ -502,7 +501,7 @@ namespace Microsoft.Samples.Debugging.CorDebug
         }
 
 
-        private CoreDebugger.LocalDebugger _debugger = null;
+        private CorApi.Portable.LocalDebugger _debugger = null;
         private ICorDebug m_debugger = null;
     } /* class Debugger */
 
