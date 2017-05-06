@@ -19,6 +19,7 @@ using Microsoft.Samples.Debugging.Extensions;
 using System.Collections.Generic;
 using Microsoft.Samples.Debugging.CorPublish.Metahost;
 using Microsoft.Win32.SafeHandles;
+using CorApi.Portable;
 
 namespace Microsoft.Samples.Debugging.CorDebug
 {
@@ -131,7 +132,7 @@ namespace Microsoft.Samples.Debugging.CorDebug
         }
 
         public CorDebugger(CoreDebugger.LocalDebugger corDebug)
-        {
+        {            
             InitFromCorDebug(corDebug);
         }
 
@@ -341,11 +342,11 @@ namespace Microsoft.Samples.Debugging.CorDebug
         /** 
          * Attach to an active process
          */
-        public CorProcess DebugActiveProcess (int processId, bool win32Attach)
+        public CoreDebugger.Process DebugActiveProcess (int processId, bool win32Attach)
         {
             CoreDebugger.Process proc = null;
             _debugger.DebugActiveProcess (processId, new SharpDX.Mathematics.Interop.RawBool(win32Attach), out proc);
-            return null;// CorProcess.GetCorProcess(proc);
+            return proc;
         }
 
         /**
@@ -432,7 +433,8 @@ namespace Microsoft.Samples.Debugging.CorDebug
 
             _debugger = rawDebuggingAPI;
             _debugger.Initialize();
-            _debugger.SetManagedHandler(CorApi.Portable.ManagedCallbackShadow.ToCallbackPtr(new CoreDe(this)));
+
+            _debugger.ManagedHandler_ = new ManagedCallbackImpl().GetNewIntPtr();
         }
 
         /**

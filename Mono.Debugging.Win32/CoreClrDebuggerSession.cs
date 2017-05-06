@@ -22,13 +22,15 @@ namespace Mono.Debugging.Win32
 				var env = PrepareEnvironment (startInfo);
 				var cmd = PrepareCommandLine (startInfo);
 				int procId;
-				var iCorDebug = CoreClrShimUtil.CreateICorDebugForCommand (
-					dbgShimInterop, cmd, workingDir, env, RuntimeLoadTimeout, out procId);
+				var iCorDebug = CoreClrShimUtil.CreateCorDebugForCommand (
+					dbgShimInterop, cmd, workingDir, env, RuntimeLoadTimeout, out procId);				
 				dbg = new CorDebugger (iCorDebug);
-				process = dbg.DebugActiveProcess (procId, false);
-				processId = process.Id;
-				SetupProcess (process);
-				process.Continue (false);
+				var lprocess = dbg.DebugActiveProcess (procId, false);
+				//processId = process.Id;
+				//SetupProcess (process);
+				//process.Continue (false);
+
+				lprocess.Continue(new SharpDX.Mathematics.Interop.RawBool(false));
 			});
 			OnStarted();
 		}
@@ -50,9 +52,10 @@ namespace Mono.Debugging.Win32
 			{
 				var iCorDebug = CoreClrShimUtil.CreateICorDebugForProcess (dbgShimInterop, procId, RuntimeLoadTimeout);
 				dbg = new CorDebugger(iCorDebug);
-				process = dbg.DebugActiveProcess(procId, false);
-				SetupProcess(process);
-				process.Continue(false);
+				var lprocess = dbg.DebugActiveProcess(procId, false);
+				//SetupProcess(process);
+				//process.Continue(false);
+				lprocess.Continue(new SharpDX.Mathematics.Interop.RawBool(false));
 			});
 			OnStarted();
 		}

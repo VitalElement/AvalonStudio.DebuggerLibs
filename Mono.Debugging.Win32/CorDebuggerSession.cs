@@ -898,9 +898,10 @@ namespace Mono.Debugging.Win32
 				if (!version.Any())
 					throw new InvalidOperationException(string.Format("Process {0} doesn't have .NET loaded runtimes", procId));
 				dbg = new CorDebugger(version.Last());
-				process = dbg.DebugActiveProcess((int)procId, false);
-				SetupProcess(process);
-				process.Continue(false);
+				var lprocess = dbg.DebugActiveProcess((int)procId, false);
+				lprocess.Continue(new SharpDX.Mathematics.Interop.RawBool(false));
+				//SetupProcess(process);
+				//process.Continue(false);
 			});
 			OnStarted();
 		}
@@ -920,9 +921,10 @@ namespace Mono.Debugging.Win32
 				if (version == null || !versions.Contains (version))
 					version = versions.Last ();
 				dbg = new CorDebugger(version);
-				process = dbg.DebugActiveProcess((int)processInfo.Id, false);
-				SetupProcess(process);
-				process.Continue(false);
+				var lprocess = dbg.DebugActiveProcess((int)processInfo.Id, false);
+				lprocess.Continue(new SharpDX.Mathematics.Interop.RawBool(false));
+				//SetupProcess(process);
+				//process.Continue(false);
 			});
 			OnStarted();
 		}
