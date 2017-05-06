@@ -59,8 +59,15 @@ namespace Mono.Debugging.Evaluation
 			if (elements == null) {
 				elements = new List<ObjectValue> ();
 				values = new List<object> ();
-				enumerator = ctx.Adapter.RuntimeInvoke (ctx, objType, obj, "GetEnumerator", new object[0], new object[0]);
-				enumeratorType = ctx.Adapter.GetImplementedInterfaces (ctx, ctx.Adapter.GetValueType (ctx, enumerator)).First (f => ctx.Adapter.GetTypeName (ctx, f) == "System.Collections.IEnumerator");
+				try {
+					enumerator = ctx.Adapter.RuntimeInvoke (ctx, objType, obj, "GetEnumerator", new object[0], new object[0]);
+					enumeratorType = ctx.Adapter.GetImplementedInterfaces (ctx, ctx.Adapter.GetValueType (ctx, enumerator))
+						.First (f => ctx.Adapter.GetTypeName (ctx, f) == "System.Collections.IEnumerator");
+				}
+				catch (EvaluatorExceptionThrownException e) {
+					elements.Add(ObjectValue.CreateEvaluationException(ctx, this, new ObjectPath("Exception"), e));
+					return;
+				}
 			}
 			while (maxIndex > elements.Count && MoveNext ()) {
 				var valCurrent = ctx.Adapter.GetMember (ctx, null, enumeratorType, enumerator, "Current");
@@ -69,7 +76,7 @@ namespace Mono.Debugging.Evaluation
 				if (val != null) {
 					elements.Add (ctx.Adapter.CreateObjectValue (ctx, valCurrent, new ObjectPath ("[" + currentIndex + "]"), val, ObjectValueFlags.ReadOnly));
 				} else {
-					elements.Add (Mono.Debugging.Client.ObjectValue.CreateNullObject (this, "[" + currentIndex + "]", ctx.Adapter.GetDisplayTypeName (ctx.Adapter.GetTypeName (ctx, valCurrent.Type)), ObjectValueFlags.ReadOnly));
+					elements.Add (ObjectValue.CreateNullObject (this, "[" + currentIndex + "]", ctx.Adapter.GetDisplayTypeName (ctx.Adapter.GetTypeName (ctx, valCurrent.Type)), ObjectValueFlags.ReadOnly));
 				}
 				currentIndex++;
 			}
