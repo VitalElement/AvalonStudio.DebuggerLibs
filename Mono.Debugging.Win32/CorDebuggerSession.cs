@@ -867,12 +867,12 @@ namespace Mono.Debugging.Win32
 			return true;
 		}
 
-		private bool IsCatchpoint (CorException2EventArgs e)
+		private bool IsCatchpoint (CorApi.Portable.Exception2EventArgs e)
 		{
 			// Build up the exception type hierachy
-			CorValue v = e.Thread.CurrentException;
+			CorApi.Portable.Value v = e.Thread.CurrentException;
 			List<string> exceptions = new List<string>();
-			CorType t = v.ExactType;
+			CorApi.Portable.Type t = v.ExactType;
 			while (t != null) {
 				exceptions.Add(t.GetTypeInfo(this).FullName);
 				t = t.Base;
@@ -1002,7 +1002,7 @@ namespace Mono.Debugging.Win32
 		{
 			return MtaThread.Run (delegate
 			{
-				foreach (var t in process.Threads) {
+				foreach (CorApi.Portable.Thread t in process.Threads) {
 					if (t.Id == threadId) {
 						return new Backtrace (new CorBacktrace (t, this));
 					}
@@ -1022,7 +1022,7 @@ namespace Mono.Debugging.Win32
 			});
 		}
 
-		internal ISymbolReader GetReaderForModule (CorApi.Portable.Module module)
+		public ISymbolReader GetReaderForModule (CorApi.Portable.Module module)
 		{
 			lock (appDomainsLock) {
 				AppDomainInfo appDomainInfo;
@@ -1035,7 +1035,7 @@ namespace Mono.Debugging.Win32
 			}
 		}
 
-		internal CorMetadataImport GetMetadataForModule (CorModule module)
+		internal CorMetadataImport GetMetadataForModule (CorApi.Portable.Module module)
 		{
 			lock (appDomainsLock) {
 				AppDomainInfo appDomainInfo;
@@ -1049,10 +1049,10 @@ namespace Mono.Debugging.Win32
 		}
 
 
-		internal IEnumerable<CorAppDomain> GetAppDomains ()
+		internal IEnumerable<CorApi.Portable.AppDomain> GetAppDomains ()
 		{
 			lock (appDomainsLock) {
-				var corAppDomains = new List<CorAppDomain> (appDomains.Count);
+				var corAppDomains = new List<CorApi.Portable.AppDomain> (appDomains.Count);
 				foreach (var appDomainInfo in appDomains) {
 					corAppDomains.Add (appDomainInfo.Value.AppDomain);
 				}
@@ -1060,10 +1060,10 @@ namespace Mono.Debugging.Win32
 			}
 		}
 
-		internal IEnumerable<CorModule> GetModules (CorAppDomain appDomain)
+		internal IEnumerable<CorApi.Portable.Module> GetModules (CorApi.Portable.AppDomain appDomain)
 		{
 			lock (appDomainsLock) {
-				List<CorModule> mods = new List<CorModule> ();
+				var mods = new List<CorApi.Portable.Module> ();
 				AppDomainInfo appDomainInfo;
 				if (appDomains.TryGetValue (appDomain.Id, out appDomainInfo)) {
 					foreach (ModuleInfo mod in appDomainInfo.Modules.Values) {
@@ -1074,10 +1074,10 @@ namespace Mono.Debugging.Win32
 			}
 		}
 
-		internal IEnumerable<CorModule> GetAllModules ()
+		internal IEnumerable<CorApi.Portable.Module> GetAllModules ()
 		{
 			lock (appDomainsLock) {
-				var corModules = new List<CorModule> ();
+				var corModules = new List<CorApi.Portable.Module> ();
 				foreach (var appDomainInfo in appDomains) {
 					corModules.AddRange (GetModules (appDomainInfo.Value.AppDomain));
 				}
@@ -1085,17 +1085,17 @@ namespace Mono.Debugging.Win32
 			}
 		}
 
-		internal CorHandleValue GetHandle (CorValue val)
+		internal CorApi.Portable.HandleValue GetHandle (CorApi.Portable.Value val)
 		{
-			CorHandleValue handleVal = null;
+			CorApi.Portable.HandleValue handleVal = null;
 			if (!handles.TryGetValue (val.Address, out handleVal)) {
 				handleVal = val.CastToHandleValue ();
 				if (handleVal == null)
 				{
 					// Create a handle
-					CorReferenceValue refVal = val.CastToReferenceValue ();
-					CorHeapValue heapVal = refVal.Dereference ().CastToHeapValue ();
-					handleVal = heapVal.CreateHandle (CorDebugHandleType.HANDLE_STRONG);
+					CorApi.Portable.ReferenceValue refVal = val.CastToReferenceValue ();
+					CorApi.Portable.HeapValue heapVal = refVal.Dereference ().CastToHeapValue ();
+					handleVal = heapVal.CreateHandle (CorApi.Portable.CorDebugHandleType.HandleStrong);
 				}
 				handles.Add (val.Address, handleVal);	
 			}
@@ -1224,15 +1224,15 @@ namespace Mono.Debugging.Win32
 						}
 
 						foreach (var docInfo in docInfos) {
-							CorFunction func = docInfo.ModuleInfo.Module.GetFunctionFromToken (bestMethod.Token.GetToken ());
+							CorApi.Portable.Function func = docInfo.ModuleInfo.Module.GetFunctionFromToken (bestMethod.Token.GetToken ());
 
 							try {
-								CorFunctionBreakpoint corBp = func.ILCode.CreateBreakpoint (bestSp.Offset);
+								CorApi.Portable.FunctionBreakpoint corBp = func.ILCode.CreateBreakpoint (bestSp.Offset);
 								breakpoints[corBp] = binfo;
 
 								if (binfo.Handle == null)
-									binfo.Handle = new List<CorFunctionBreakpoint> ();
-								(binfo.Handle as List<CorFunctionBreakpoint>).Add (corBp);
+									binfo.Handle = new List<CorApi.Portable.FunctionBreakpoint> ();
+								(binfo.Handle as List<CorApi.Portable.FunctionBreakpoint>).Add (corBp);
 								corBp.Activate (bp.Enabled);
 								binfo.SetStatus (BreakEventStatus.Bound, null);
 							}
@@ -1333,8 +1333,9 @@ namespace Mono.Debugging.Win32
 						return;
 					}
 
-					uint offset;
-					CorDebugMappingResult mappingResult;
+					int offset;
+					CorApi.Portable.CorDebugMappingResult mappingResult;
+					
 					frame.GetIP (out offset, out mappingResult);
 
 					// Exclude all ranges belonging to the current line
@@ -1514,10 +1515,10 @@ namespace Mono.Debugging.Win32
 			}
 		}
 
-		CorValue NewSpecialObject (CorEvaluationContext ctx, Action<CorEval> createCall)
+		CorApi.Portable.Value NewSpecialObject (CorEvaluationContext ctx, Action<CorApi.Portable.Eval> createCall)
 		{
 			ManualResetEvent doneEvent = new ManualResetEvent (false);
-			CorValue result = null;
+			CorApi.Portable.Value result = null;
 			var eval = ctx.Eval;
 			CorApi.Portable.DebugEventHandler<CorApi.Portable.EvalEventArgs> completeHandler = delegate (object o, CorApi.Portable.EvalEventArgs eargs) {
 				if (eargs.Eval != eval)
@@ -1567,12 +1568,12 @@ namespace Mono.Debugging.Win32
 			}
 		}
 
-		public CorValue NewString (CorEvaluationContext ctx, string value)
+		public CorApi.Portable.Value NewString (CorEvaluationContext ctx, string value)
 		{
 			return NewSpecialObject (ctx, eval => eval.NewString (value));
 		}
 
-		public CorValue NewArray (CorEvaluationContext ctx, CorType elemType, int size)
+		public CorApi.Portable.Value NewArray (CorEvaluationContext ctx, CorApi.Portable.Type elemType, int size)
 		{
 			return NewSpecialObject (ctx, eval => eval.NewParameterizedArray (elemType, 1, 1, 0));
 		}
@@ -1614,7 +1615,7 @@ namespace Mono.Debugging.Win32
 
 		internal void ClearEvalStatus ( )
 		{
-			foreach (CorProcess p in dbg.Processes) {
+			foreach (CorApi.Portable.Process p in dbg.Processes) {
 				if (p.Id == processId) {
 					process = p;
 					break;
@@ -1682,16 +1683,16 @@ namespace Mono.Debugging.Win32
 			}
 		}
 
-		string GetThreadName (CorThread thread)
+		string GetThreadName (CorApi.Portable.Thread thread)
 		{
 			// From http://social.msdn.microsoft.com/Forums/en/netfxtoolsdev/thread/461326fe-88bd-4a6b-82a9-1a66b8e65116
 		    try 
-		    { 
-		        CorReferenceValue refVal = thread.ThreadVariable.CastToReferenceValue(); 
+		    {
+		        CorApi.Portable.ReferenceValue refVal = thread.ThreadVariable.CastToReferenceValue(); 
 		        if (refVal.IsNull) 
-		            return string.Empty; 
-		        
-		        CorObjectValue val = refVal.Dereference().CastToObjectValue(); 
+		            return string.Empty;
+				
+		        CorApi.Portable.ObjectValue val = refVal.Dereference().CastToObjectValue(); 
 		        if (val != null) 
 		        { 
 					Type classType = val.ExactType.GetTypeInfo (this);
@@ -1700,7 +1701,7 @@ namespace Mono.Debugging.Win32
 		            { 
 		                if (fi.Name == "m_Name")
 						{
-		                        CorReferenceValue fieldValue = val.GetFieldValue(val.Class, fi.MetadataToken).CastToReferenceValue(); 
+		                        var fieldValue = val.GetFieldValue(val.Class, fi.MetadataToken).CastToReferenceValue(); 
 							
 								if (fieldValue.IsNull)
 									return string.Empty;
@@ -1800,10 +1801,10 @@ namespace Mono.Debugging.Win32
 				if (thread == null)
 					throw new ArgumentException ("Unknown thread.");
 
-				CorFrame frame = thread.ActiveFrame;
+				var frame = thread.ActiveFrame;
 				if (frame == null)
 					throw new NotSupportedException ();
-
+			
 				ISymbolMethod met = frame.Function.GetSymbolMethod (this);
 				if (met == null) {
 					throw new NotSupportedException ();
@@ -1885,13 +1886,13 @@ namespace Mono.Debugging.Win32
 			}
 		}
 
-		public static Type GetTypeInfo (this CorType type, CorDebuggerSession session)
+		public static Type GetTypeInfo (this CorApi.Portable.Type type, CorDebuggerSession session)
 		{
 			Type t;
-			if (MetadataHelperFunctionsExtensions.CoreTypes.TryGetValue (type.Type, out t))
+			if (MetadataHelperFunctionsExtensions.CoreTypes.TryGetValue ((CorElementType)type.CorType, out t))
 				return t;
 
-			if (type.Type == CorElementType.ELEMENT_TYPE_ARRAY || type.Type == CorElementType.ELEMENT_TYPE_SZARRAY) {
+			if (type.CorType == CorApi.Portable.CorElementType.ELEMENT_TYPE_ARRAY || type.CorType == CorApi.Portable.CorElementType.ELEMENT_TYPE_SZARRAY) {
 				List<int> sizes = new List<int> ();
 				List<int> loBounds = new List<int> ();
 				for (int n = 0; n < type.Rank; n++) {
@@ -1901,19 +1902,19 @@ namespace Mono.Debugging.Win32
 				return MetadataExtensions.MakeArray (type.FirstTypeParameter.GetTypeInfo (session), sizes, loBounds);
 			}
 
-			if (type.Type == CorElementType.ELEMENT_TYPE_BYREF)
+			if (type.CorType == CorApi.Portable.CorElementType.ELEMENT_TYPE_BYREF)
 				return MetadataExtensions.MakeByRef (type.FirstTypeParameter.GetTypeInfo (session));
 
-			if (type.Type == CorElementType.ELEMENT_TYPE_PTR)
+			if (type.CorType == CorApi.Portable.CorElementType.ELEMENT_TYPE_PTR)
 				return MetadataExtensions.MakePointer (type.FirstTypeParameter.GetTypeInfo (session));
 
 			CorMetadataImport mi = session.GetMetadataForModule (type.Class.Module);
 			if (mi != null) {
 				t = mi.GetType (type.Class.Token);
-				CorType[] targs = type.TypeParameters;
+				CorApi.Portable.Type[] targs = type.TypeParameters;
 				if (targs.Length > 0) {
 					List<Type> types = new List<Type> ();
-					foreach (CorType ct in targs)
+					foreach (CorApi.Portable.Type ct in targs)
 						types.Add (ct.GetTypeInfo (session));
 					return MetadataExtensions.MakeGeneric (t, types);
 				}
@@ -1924,7 +1925,7 @@ namespace Mono.Debugging.Win32
 				return null;
 		}
 
-		public static ISymbolMethod GetSymbolMethod (this CorFunction func, CorDebuggerSession session)
+		public static ISymbolMethod GetSymbolMethod (this CorApi.Portable.Function func, CorDebuggerSession session)
 		{
 			ISymbolReader reader = session.GetReaderForModule (func.Module);
 			if (reader == null)
@@ -1932,7 +1933,7 @@ namespace Mono.Debugging.Win32
 			return reader.GetMethod (new SymbolToken (func.Token));
 		}
 
-		public static MethodInfo GetMethodInfo (this CorFunction func, CorDebuggerSession session)
+		public static MethodInfo GetMethodInfo (this CorApi.Portable.Function func, CorDebuggerSession session)
 		{
 			CorMetadataImport mi = session.GetMetadataForModule (func.Module);
 			if (mi != null)

@@ -55,7 +55,7 @@ namespace Mono.Debugging.Win32
 			}
 		}
 
-		public CorChain ActiveChain {
+		public CorApi.Portable.Chain ActiveChain {
 			get {
 				CheckTimestamp ();
 				if (activeChain == null) {
@@ -65,7 +65,7 @@ namespace Mono.Debugging.Win32
 			}
 		}
 
-		public CorFrame Frame {
+		public CorApi.Portable.Frame Frame {
 			get {
 				CheckTimestamp ();
 				if (frame == null) {

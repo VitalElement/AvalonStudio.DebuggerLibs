@@ -159,7 +159,7 @@ namespace Microsoft.Samples.Debugging.CorDebug.NativeApi
     // [Xamarin] Expression evaluator.
     [CLSCompliant (true)]
     [Flags]
-    public enum CorElementType
+    public enum CorElementType : int
     {
         // Fields
         ELEMENT_TYPE_ARRAY = 20,

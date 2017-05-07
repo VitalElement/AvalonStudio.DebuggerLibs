@@ -10,14 +10,14 @@ namespace Mono.Debugging.Win32
 {
 	class CorMethodCall: AsyncOperationBase<CorValue>
 	{
-		readonly CorEvaluationContext context;
-		readonly CorFunction function;
-		readonly CorType[] typeArgs;
-		readonly CorValue[] args;
+		readonly EvaluationContext context;
+		readonly CorApi.Portable.Function function;
+		readonly CorApi.Portable.Type[] typeArgs;
+		readonly CorApi.Portable.Value[] args;
 
-		readonly CorEval eval;
+		readonly CorApi.Portable.Eval eval;
 
-		public CorMethodCall (CorEvaluationContext context, CorFunction function, CorType[] typeArgs, CorValue[] args)
+		public CorMethodCall (CorEvaluationContext context, CorApi.Portable.Function function, CorApi.Portable.Type[] typeArgs, CorApi.Portable.Value[] args)
 		{
 			this.context = context;
 			this.function = function;

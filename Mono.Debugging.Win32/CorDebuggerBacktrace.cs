@@ -193,7 +193,7 @@ namespace Mono.Debugging.Win32
 
 		internal static StackFrame CreateFrame (CorDebuggerSession session, CorApi.Portable.Frame frame)
 		{
-			uint address = 0;
+			int address = 0;
 			string addressSpace = "";
 			string file = "";
 			int line = 0;
@@ -231,7 +231,7 @@ namespace Mono.Debugging.Win32
 						endLine = sp.EndLine;
 						endColumn = sp.EndColumn;
 						file = sp.Document.URL;
-						address = (uint)sp.Offset;
+						address = sp.Offset;
 					}
 
 					if (session.IsExternalCode (file)) {
@@ -256,19 +256,19 @@ namespace Mono.Debugging.Win32
 				lang = "Native";
 			} else if (frame.FrameType == CorApi.Portable.CorFrameType.InternalFrame) {
 				switch (frame.InternalFrameType) {
-				case CorDebugInternalFrameType.STUBFRAME_M2U:
+				case CorApi.Portable.CorDebugInternalFrameType.StubframeM2U:
 					method = "[Managed to Native Transition]";
 					break;
-				case CorDebugInternalFrameType.STUBFRAME_U2M:
+				case CorApi.Portable.CorDebugInternalFrameType.StubframeU2M:
 					method = "[Native to Managed Transition]";
 					break;
-				case CorDebugInternalFrameType.STUBFRAME_LIGHTWEIGHT_FUNCTION:
+				case CorApi.Portable.CorDebugInternalFrameType.StubframeLightweightFunction:
 					method = "[Lightweight Method Call]";
 					break;
-				case CorDebugInternalFrameType.STUBFRAME_APPDOMAIN_TRANSITION:
+				case CorApi.Portable.CorDebugInternalFrameType.StubframeAppdomainTransition:
 					method = "[Application Domain Transition]";
 					break;
-				case CorDebugInternalFrameType.STUBFRAME_FUNC_EVAL:
+				case CorApi.Portable.CorDebugInternalFrameType.StubframeFunctionEval:
 					method = "[Function Evaluation]";
 					break;
 				}
