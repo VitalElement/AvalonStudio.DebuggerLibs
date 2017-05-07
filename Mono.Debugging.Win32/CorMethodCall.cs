@@ -10,7 +10,7 @@ namespace Mono.Debugging.Win32
 {
 	class CorMethodCall: AsyncOperationBase<CorValue>
 	{
-		readonly EvaluationContext context;
+		readonly CorEvaluationContext context;
 		readonly CorApi.Portable.Function function;
 		readonly CorApi.Portable.Type[] typeArgs;
 		readonly CorApi.Portable.Value[] args;
@@ -26,17 +26,17 @@ namespace Mono.Debugging.Win32
 			eval = context.Eval;
 		}
 
-		void ProcessOnEvalComplete (object sender, CorEvalEventArgs evalArgs)
+		void ProcessOnEvalComplete (object sender, CorApi.Portable.EvalEventArgs evalArgs)
 		{
 			DoProcessEvalFinished (evalArgs, false);
 		}
 
-		void ProcessOnEvalException (object sender, CorEvalEventArgs evalArgs)
+		void ProcessOnEvalException (object sender, CorApi.Portable.EvalEventArgs evalArgs)
 		{
 			DoProcessEvalFinished (evalArgs, true);
 		}
 
-		void DoProcessEvalFinished (CorEvalEventArgs evalArgs, bool isException)
+		void DoProcessEvalFinished (CorApi.Portable.EvalEventArgs evalArgs, bool isException)
 		{
 			if (evalArgs.Eval != eval)
 				return;
@@ -48,7 +48,7 @@ namespace Mono.Debugging.Win32
 			}
 			else {
 				DebuggerLoggingService.LogMessage ("EvalFinished(). Setting the result");
-				tcs.TrySetResult(new OperationResult<CorValue> (evalArgs.Eval.Result, isException));
+				tcs.TrySetResult(new OperationResult<CorApi.Portable.Value> (evalArgs.Eval.Result, isException));
 			}
 		}
 
@@ -77,7 +77,7 @@ namespace Mono.Debugging.Win32
 			}
 		}
 
-		readonly TaskCompletionSource<OperationResult<CorValue>> tcs = new TaskCompletionSource<OperationResult<CorValue>> ();
+		readonly TaskCompletionSource<OperationResult<CorApi.Portable.Value>> tcs = new TaskCompletionSource<OperationResult<CorApi.Portable.Value>> ();
 
 		protected override Task<OperationResult<CorValue>> InvokeAsyncImpl ()
 		{
@@ -87,7 +87,7 @@ namespace Mono.Debugging.Win32
 				eval.NewParameterizedObject (function, typeArgs, args);
 			else
 				eval.CallParameterizedFunction (function, typeArgs, args);
-			context.Session.Process.SetAllThreadsDebugState (CorDebugThreadState.THREAD_SUSPEND, context.Thread);
+			context.Session.Process.SetAllThreadsDebugState (CorApi.Portable.CorDebugThreadState.ThreadSuspend, context.Thread);
 			context.Session.ClearEvalStatus ();
 			context.Session.OnStartEvaluating ();
 			context.Session.Process.Continue (false);
@@ -115,7 +115,7 @@ namespace Mono.Debugging.Win32
 						DebuggerLoggingService.LogMessage ("Calling Stop()");
 						context.Session.Process.Stop (0);
 						DebuggerLoggingService.LogMessage ("Calling SetAllThreadsDebugState(THREAD_RUN)");
-						context.Session.Process.SetAllThreadsDebugState (CorDebugThreadState.THREAD_RUN, null);
+						context.Session.Process.SetAllThreadsDebugState (CorApi.Portable.CorDebugThreadState.ThreadRun, null);
 						DebuggerLoggingService.LogMessage ("Calling Continue()");
 						context.Session.Process.Continue (false);
 					}

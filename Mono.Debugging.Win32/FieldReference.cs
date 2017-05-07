@@ -86,17 +86,17 @@ namespace Mono.Debugging.Win32
 		public override object Value {
 			get {
 				var ctx = (CorEvaluationContext) Context;
-				CorValue val;
+				CorApi.Portable.Value val;
 				if (thisobj != null && !field.IsStatic) {
-					CorObjectValue cval;
+					CorApi.Portable.ObjectValue cval;
 					val = CorObjectAdaptor.GetRealObject (ctx, thisobj);
-					if (val is CorObjectValue) {
-						cval = (CorObjectValue)val;
+					if (val is CorApi.Portable.ObjectValue) {
+						cval = (CorApi.Portable.ObjectValue)val;
 						val = cval.GetFieldValue (type.Class, field.MetadataToken);
-						return new CorValRef (val, loader);
+						return new ValRef (val, loader);
 					}
-					if (val is CorReferenceValue) {
-						CorReferenceValue rval = (CorReferenceValue)val;
+					if (val is CorApi.Portable.ReferenceValue) {
+						CorApi.Portable.ReferenceValue rval = (CorApi.Portable.ReferenceValue)val;
 						return new CorValRef (rval, loader);
 					}
 				}

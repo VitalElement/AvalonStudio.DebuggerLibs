@@ -1468,13 +1468,13 @@ namespace Mono.Debugging.Win32
 		{
 		}
 
-		public CorValue RuntimeInvoke (CorEvaluationContext ctx, CorFunction function, CorType[] typeArgs, CorValue thisObj, CorValue[] arguments)
+		public CorValue RuntimeInvoke (CorEvaluationContext ctx, CorApi.Portable.Function function, CorApi.Portable.Type[] typeArgs, CorApi.Portable.Value thisObj, CorApi.Portable.Value[] arguments)
 		{
-			CorValue[] args;
+			CorApi.Portable.Value[] args;
 			if (thisObj == null)
 				args = arguments;
 			else {
-				args = new CorValue[arguments.Length + 1];
+				args = new CorApi.Portable.Value[arguments.Length + 1];
 				args[0] = thisObj;
 				arguments.CopyTo (args, 1);
 			}
