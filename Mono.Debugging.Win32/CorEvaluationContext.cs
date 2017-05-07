@@ -7,13 +7,13 @@ namespace Mono.Debugging.Win32
 {
 	public class CorEvaluationContext: EvaluationContext
 	{
-		CorEval corEval;
-		CorFrame frame;
-		CorChain activeChain;
+		CorApi.Portable.Eval corEval;
+		CorApi.Portable.Frame frame;
+		CorApi.Portable.Chain activeChain;
 		int frameIndex;
 		int evalTimestamp;
 		readonly CorBacktrace backtrace;
-		CorThread thread;
+		CorApi.Portable.Thread thread;
 		int threadId;
 
 		public CorDebuggerSession Session { get; set; }
@@ -42,7 +42,7 @@ namespace Mono.Debugging.Win32
 			}
 		}
 
-		public CorThread Thread {
+		public CorApi.Portable.Thread Thread {
 			get {
 				CheckTimestamp ();
 				if (thread == null)
@@ -75,7 +75,7 @@ namespace Mono.Debugging.Win32
 			}
 		}
 
-		public CorEval Eval {
+		public CorApi.Portable.Eval Eval {
 			get {
 				CheckTimestamp ();
 				if (corEval == null)

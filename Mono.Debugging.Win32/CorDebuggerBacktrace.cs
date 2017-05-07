@@ -8,37 +8,38 @@ using Mono.Debugging.Client;
 using Mono.Debugging.Evaluation;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System;
 
 namespace Mono.Debugging.Win32
 {
 	class CorBacktrace: BaseBacktrace
 	{
-		CorThread thread;
+		CorApi.Portable.Thread thread;
 		readonly int threadId;
 		readonly CorDebuggerSession session;
-		List<CorFrame> frames;
+		List<CorApi.Portable.Frame> frames;
 		int evalTimestamp;
 
-		public CorBacktrace (CorThread thread, CorDebuggerSession session): base (session.ObjectAdapter)
+		public CorBacktrace (CorApi.Portable.Thread thread, CorDebuggerSession session): base (session.ObjectAdapter)
 		{
 			this.session = session;
 			this.thread = thread;
 			threadId = thread.Id;
-			frames = new List<CorFrame> (GetFrames (thread));
+			frames = new List<CorApi.Portable.Frame> (GetFrames (thread));
 			evalTimestamp = CorDebuggerSession.EvaluationTimestamp;
 		}
 
-		internal static IEnumerable<CorFrame> GetFrames (CorThread thread)
+		internal static IEnumerable<CorApi.Portable.Frame> GetFrames (CorApi.Portable.Thread thread)
 		{
-			var corFrames = new List<CorFrame> ();
+			var corFrames = new List<CorApi.Portable.Frame> ();
 			try {
-				foreach (CorChain chain in thread.Chains) {
+				foreach (CorApi.Portable.Chain chain in thread.Chains) {
 					if (!chain.IsManaged)
 						continue;
 					try {
 						var chainFrames = chain.Frames;
 
-						foreach (CorFrame frame in chainFrames)
+						foreach (CorApi.Portable.Frame frame in chainFrames)
 							corFrames.Add (frame);
 					}
 					catch (COMException e) {
@@ -53,11 +54,11 @@ namespace Mono.Debugging.Win32
 			return corFrames;
 		}
 
-		internal List<CorFrame> FrameList {
+		internal List<CorApi.Portable.Frame> FrameList {
 			get {
 				if (evalTimestamp != CorDebuggerSession.EvaluationTimestamp) {
 					thread = session.GetThread (threadId);
-					frames = new List<CorFrame> (GetFrames (thread));
+					frames = new List<CorApi.Portable.Frame> (GetFrames (thread));
 					evalTimestamp = CorDebuggerSession.EvaluationTimestamp;
 				}
 				return frames;
@@ -95,7 +96,7 @@ namespace Mono.Debugging.Win32
 
 		private const int SpecialSequencePoint = 0xfeefee;
 
-		public static SequencePoint GetSequencePoint(CorDebuggerSession session, CorFrame frame)
+		public static SequencePoint GetSequencePoint(CorDebuggerSession session, CorApi.Portable.Frame frame)
 		{
 			ISymbolReader reader = session.GetReaderForModule (frame.Function.Module);
 			if (reader == null)
@@ -111,7 +112,8 @@ namespace Mono.Debugging.Win32
 
 			CorDebugMappingResult mappingResult;
 			uint ip;
-			frame.GetIP (out ip, out mappingResult);
+			throw new NotImplementedException();
+			//frame.GetIP (out ip, out mappingResult);
 			if (mappingResult == CorDebugMappingResult.MAPPING_NO_INFO || mappingResult == CorDebugMappingResult.MAPPING_UNMAPPED_ADDRESS)
 				return null;
 
@@ -189,7 +191,7 @@ namespace Mono.Debugging.Win32
 			return null;
 		}
 
-		internal static StackFrame CreateFrame (CorDebuggerSession session, CorFrame frame)
+		internal static StackFrame CreateFrame (CorDebuggerSession session, CorApi.Portable.Frame frame)
 		{
 			uint address = 0;
 			string addressSpace = "";
@@ -206,7 +208,7 @@ namespace Mono.Debugging.Win32
 			bool hidden = false;
 			bool external = true;
 
-			if (frame.FrameType == CorFrameType.ILFrame) {
+			if (frame.FrameType == CorApi.Portable.CorFrameType.ILFrame) {
 				if (frame.Function != null) {
 					module = frame.Function.Module.Name;
 					CorMetadataImport importer = new CorMetadataImport (frame.Function.Module);
@@ -248,11 +250,11 @@ namespace Mono.Debugging.Win32
 				}
 				lang = "Managed";
 				hasDebugInfo = true;
-			} else if (frame.FrameType == CorFrameType.NativeFrame) {
+			} else if (frame.FrameType == CorApi.Portable.CorFrameType.NativeFrame) {
 				frame.GetNativeIP (out address);
 				method = "[Native frame]";
 				lang = "Native";
-			} else if (frame.FrameType == CorFrameType.InternalFrame) {
+			} else if (frame.FrameType == CorApi.Portable.CorFrameType.InternalFrame) {
 				switch (frame.InternalFrameType) {
 				case CorDebugInternalFrameType.STUBFRAME_M2U:
 					method = "[Managed to Native Transition]";

@@ -28,9 +28,9 @@ namespace Mono.Debugging.Win32
 		readonly object terminateLock = new object ();
 
 		protected CorDebugger dbg;
-		protected CorProcess process;
-		CorThread activeThread;
-		CorStepper stepper;
+		protected CorApi.Portable.Process process;
+		CorApi.Portable.Thread activeThread;
+		CorApi.Portable.Stepper stepper;
 		bool terminated;
 		bool evaluating;
 		bool autoStepInto;
@@ -46,8 +46,8 @@ namespace Mono.Debugging.Win32
 		Dictionary<int, AppDomainInfo> appDomains = new Dictionary<int, AppDomainInfo> ();
 		Dictionary<int, ProcessInfo> processes = new Dictionary<int, ProcessInfo> ();
 		Dictionary<int, ThreadInfo> threads = new Dictionary<int,ThreadInfo> ();
-		readonly Dictionary<CorBreakpoint, BreakEventInfo> breakpoints = new Dictionary<CorBreakpoint, BreakEventInfo> ();
-		readonly Dictionary<long, CorHandleValue> handles = new Dictionary<long, CorHandleValue>();
+		readonly Dictionary<CorApi.Portable.Breakpoint, BreakEventInfo> breakpoints = new Dictionary<CorApi.Portable.Breakpoint, BreakEventInfo> ();
+		readonly Dictionary<long, CorApi.Portable.HandleValue> handles = new Dictionary<long, CorApi.Portable.HandleValue>();
 
 		readonly BlockingCollection<Action> helperOperationsQueue = new BlockingCollection<Action>(new ConcurrentQueue<Action>());
 		readonly CancellationTokenSource helperOperationsCancellationTokenSource = new CancellationTokenSource ();
@@ -56,7 +56,7 @@ namespace Mono.Debugging.Win32
 
 		class AppDomainInfo
 		{
-			public CorAppDomain AppDomain;
+			public CorApi.Portable.AppDomain AppDomain;
 			public Dictionary<string, DocInfo> Documents;
 			public Dictionary<string, ModuleInfo> Modules;
 		}
@@ -70,7 +70,7 @@ namespace Mono.Debugging.Win32
 		class ModuleInfo
 		{
 			public ISymbolReader Reader;
-			public CorModule Module;
+			public CorApi.Portable.Module Module;
 			public CorMetadataImport Importer;
 		}
 
@@ -113,7 +113,7 @@ namespace Mono.Debugging.Win32
 
 		public ICustomCorSymbolReaderFactory CustomSymbolReaderFactory { get; set; }
 
-		internal CorProcess Process
+		internal CorApi.Portable.Process Process
 		{
 			get
 			{
@@ -237,9 +237,11 @@ namespace Mono.Debugging.Win32
 					dversion = CorDebugger.GetDefaultDebuggerVersion ();
 				}
 				dbg = new CorDebugger (dversion);
-				process = dbg.CreateProcess (startInfo.Command, cmdLine, dir, env, flags);
+				throw new NotImplementedException();
+				//process = dbg.CreateProcess (startInfo.Command, cmdLine, dir, env, flags);
 				processId = process.Id;
-				SetupProcess (process);
+				
+				//SetupProcess (process);
 				process.Continue (false);
 			});
 			OnStarted ();
@@ -271,7 +273,7 @@ namespace Mono.Debugging.Win32
 			return env;
 		}
 
-		protected void SetupProcess (CorProcess corProcess)
+		protected void SetupProcess (CorApi.Portable.Process corProcess)
 		{
 			processId = corProcess.Id;
 			corProcess.OnCreateProcess += OnCreateProcess;
@@ -294,31 +296,31 @@ namespace Mono.Debugging.Win32
 			corProcess.OnEvalException += OnEvalException;
 			corProcess.OnLogMessage += OnLogMessage;
 			corProcess.OnException2 += OnException2;
-			corProcess.RegisterStdOutput (OnStdOutput);
+		    CorApi.Portable.CorProcessExtensions.RegisterStdOutput(corProcess, OnStdOutput);
 		}
 
-		void OnStdOutput (object sender, CorTargetOutputEventArgs e)
+		void OnStdOutput (object sender, CorApi.Portable.CorTargetOutputEventArgs e)
 		{
 			OnTargetOutput (e.IsStdError, e.Text);
 		}
 
-		void OnLogMessage (object sender, CorLogMessageEventArgs e)
+		void OnLogMessage (object sender, CorApi.Portable.LogMessageEventArgs e)
 		{
 			OnTargetDebug (e.Level, e.LogSwitchName, e.Message);
 			e.Continue = true;
 		}
 
-		void OnEvalException (object sender, CorEvalEventArgs e)
+		void OnEvalException (object sender, CorApi.Portable.EvalEventArgs e)
 		{
 			evaluationTimestamp++;
 		}
 
-		void OnEvalComplete (object sender, CorEvalEventArgs e)
+		void OnEvalComplete (object sender, CorApi.Portable.EvalEventArgs e)
 		{
 			evaluationTimestamp++;
 		}
 
-		void OnNameChange (object sender, CorThreadEventArgs e)
+		void OnNameChange (object sender, CorApi.Portable.ThreadEventArgs e)
 		{
 		}
 
@@ -330,7 +332,7 @@ namespace Mono.Debugging.Win32
 			}
 		}
 
-		void OnBreak (object sender, CorThreadEventArgs e)
+		void OnBreak (object sender, CorApi.Portable.ThreadEventArgs e)
 		{
 			lock (debugLock) {
 				if (evaluating) {
@@ -385,7 +387,7 @@ namespace Mono.Debugging.Win32
 			return method.GetCustomAttributes (true).Any (v => v is System.Runtime.CompilerServices.CompilerGeneratedAttribute);
 		}
 
-		void OnStepComplete (object sender, CorStepCompleteEventArgs e)
+		void OnStepComplete (object sender, CorApi.Portable.StepCompleteEventArgs e)
 		{
 			lock (debugLock) {
 				if (evaluating) {
@@ -424,7 +426,7 @@ namespace Mono.Debugging.Win32
 			}
 
 			if (StepThrough (e.Thread.ActiveFrame.Function.GetMethodInfo (this))) {
-				stepInsideDebuggerHidden = e.StepReason == CorDebugStepReason.STEP_CALL;
+				stepInsideDebuggerHidden = e.StepReason == CorApi.Portable.CorDebugStepReason.StepCall;
 				RawContinue (true, true);
 				e.Continue = true;
 				return;
@@ -432,7 +434,7 @@ namespace Mono.Debugging.Win32
 
 			if ((Options.StepOverPropertiesAndOperators || IsCompilerGenerated(e.Thread.ActiveFrame.Function.GetMethodInfo (this))) &&
 			    IsPropertyOrOperatorMethod (e.Thread.ActiveFrame.Function.GetMethodInfo (this)) &&
-				e.StepReason == CorDebugStepReason.STEP_CALL) {
+				e.StepReason == CorApi.Portable.CorDebugStepReason.StepCall) {
 				stepper.StepOut ();
 				autoStepInto = true;
 				e.Continue = true;
@@ -445,7 +447,7 @@ namespace Mono.Debugging.Win32
 				return;
 			}
 
-			if (localStepInsideDebuggerHidden && e.StepReason == CorDebugStepReason.STEP_RETURN) {
+			if (localStepInsideDebuggerHidden && e.StepReason == CorApi.Portable.CorDebugStepReason.StepReturn) {
 				Step (true);
 				e.Continue = true;
 				return;
@@ -461,14 +463,14 @@ namespace Mono.Debugging.Win32
 			OnTargetEvent (args);
 		}
 
-		void OnThreadExit (object sender, CorThreadEventArgs e)
+		void OnThreadExit (object sender, CorApi.Portable.ThreadEventArgs e)
 		{
 			lock (threads) {
 				threads.Remove (e.Thread.Id);
 			}
 		}
 
-		void OnBreakpoint (object sender, CorBreakpointEventArgs e)
+		void OnBreakpoint (object sender, CorApi.Portable.BreakpointEventArgs e)
 		{
 			lock (debugLock) {
 				if (evaluating) {
@@ -484,7 +486,7 @@ namespace Mono.Debugging.Win32
 			QueueToHelperThread (() => {
 				BreakEventInfo binfo;
 				BreakEvent breakEvent = null;
-				if (e.Controller.IsRunning ())
+				if (e.Controller.IsRunning)
 					throw new InvalidOperationException ("Debuggee isn't stopped to perform breakpoint calculations");
 
 				var shouldContinue = false;
@@ -499,14 +501,14 @@ namespace Mono.Debugging.Win32
 				}
 
 				if (shouldContinue || e.AppDomain.Process.HasQueuedCallbacks (e.Thread)) {
-					e.Controller.SetAllThreadsDebugState (CorDebugThreadState.THREAD_RUN, null);
+					e.Controller.SetAllThreadsDebugState (CorApi.Portable.CorDebugThreadState.ThreadRun, null);
 					e.Controller.Continue (false);
 					return;
 				}
 
 				OnStopped ();
 				// If a breakpoint is hit while stepping, cancel the stepping operation
-				if (stepper != null && stepper.IsActive ())
+				if (stepper != null && stepper.IsActive)
 					stepper.Deactivate ();
 				autoStepInto = false;
 				SetActiveThread (e.Thread);
@@ -520,7 +522,7 @@ namespace Mono.Debugging.Win32
 			});
 		}
 
-		bool ShouldContinueOnBreakpoint (CorThread thread, BreakEventInfo binfo)
+		bool ShouldContinueOnBreakpoint (CorApi.Portable.Thread thread, BreakEventInfo binfo)
 		{
 			var bp = (Breakpoint) binfo.BreakEvent;
 			binfo.IncrementHitCount();
@@ -565,18 +567,18 @@ namespace Mono.Debugging.Win32
 			return (bp.HitAction & HitAction.Break) == HitAction.None;
 		}
 
-		void OnDebuggerError (object sender, CorDebuggerErrorEventArgs e)
+		void OnDebuggerError (object sender, CorApi.Portable.DebuggerErrorEventArgs e)
 		{
 			Exception ex = Marshal.GetExceptionForHR (e.HResult);
 			OnDebuggerOutput (true, string.Format ("Debugger Error: {0}\n", ex.Message));
 		}
 
-		void OnUpdateModuleSymbols (object sender, CorUpdateModuleSymbolsEventArgs e)
+		void OnUpdateModuleSymbols (object sender, CorApi.Portable.UpdateModuleSymbolsEventArgs e)
 		{
 			e.Continue = true;
 		}
 
-		void OnProcessExit (object sender, CorProcessEventArgs e)
+		void OnProcessExit (object sender, CorApi.Portable.ProcessEventArgs e)
 		{
 			TargetEventArgs args = new TargetEventArgs (TargetEventType.TargetExited);
 
@@ -598,20 +600,20 @@ namespace Mono.Debugging.Win32
 			OnTargetEvent (args);
 		}
 
-		void OnAssemblyUnload (object sender, CorAssemblyEventArgs e)
+		void OnAssemblyUnload (object sender, CorApi.Portable.AssemblyEventArgs e)
 		{
 			OnDebuggerOutput (false, string.Format ("Unloaded Module '{0}'\n", e.Assembly.Name));
 			e.Continue = true;
 		}
 
-		void OnModuleLoad (object sender, CorModuleEventArgs e)
+		void OnModuleLoad (object sender, CorApi.Portable.ModuleEventArgs e)
 		{
 			var currentModule = e.Module;
 			CorMetadataImport mi = new CorMetadataImport (currentModule);
 
 			try {
 				// Required to avoid the jit to get rid of variables too early
-				currentModule.JITCompilerFlags = CorDebugJITCompilerFlags.CORDEBUG_JIT_DISABLE_OPTIMIZATION;
+				currentModule.JITCompilerFlags = CorApi.Portable.CorDebugJITCompilerFlags.CordebugJitDisableOptimization;
 			}
 			catch {
 				// Some kind of modules don't allow JIT flags to be changed.
@@ -663,7 +665,7 @@ namespace Mono.Debugging.Win32
 				}
 			}
 			try {
-				currentModule.SetJmcStatus (justMyCode, null);
+				currentModule.SetJMCStatus (justMyCode, null);
 			}
 			catch (COMException ex) {
 				// somewhen exceptions is thrown
@@ -713,7 +715,7 @@ namespace Mono.Debugging.Win32
 			e.Continue = true;
 		}
 
-		void OnModuleUnload (object sender, CorModuleEventArgs e)
+		void OnModuleUnload (object sender, CorApi.Portable.ModuleEventArgs e)
 		{
 			var currentDomain = e.AppDomain;
 			var currentModule = e.Module;
@@ -750,7 +752,7 @@ namespace Mono.Debugging.Win32
 			}
 		}
 
-		void OnCreateAppDomain (object sender, CorAppDomainEventArgs e)
+		void OnCreateAppDomain (object sender, CorApi.Portable.AppDomainEventArgs e)
 		{
 			var appDomainId = e.AppDomain.Id;
 			lock (appDomainsLock) {
@@ -770,7 +772,7 @@ namespace Mono.Debugging.Win32
 			OnDebuggerOutput (false, string.Format("Loaded application domain '{0} (id {1})'\n", e.AppDomain.Name, appDomainId));
 		}
 
-		private void OnAppDomainExit (object sender, CorAppDomainEventArgs e)
+		private void OnAppDomainExit (object sender, CorApi.Portable.AppDomainEventArgs e)
 		{
 			var appDomainId = e.AppDomain.Id;
 			lock (appDomainsLock) {
@@ -785,31 +787,31 @@ namespace Mono.Debugging.Win32
 		}
 
 
-		void OnCreateProcess (object sender, CorProcessEventArgs e)
+		void OnCreateProcess (object sender, CorApi.Portable.ProcessEventArgs e)
 		{
 			// Required to avoid the jit to get rid of variables too early
 			// not allowed in attach mode
 			try {
-				e.Process.DesiredNGENCompilerFlags = CorDebugJITCompilerFlags.CORDEBUG_JIT_DISABLE_OPTIMIZATION;
+				e.Process.DesiredNGENCompilerFlags = CorApi.Portable.CorDebugJITCompilerFlags.CordebugJitDisableOptimization;
 			} catch (Exception ex) {
 				DebuggerLoggingService.LogMessage (string.Format ("Unable to set e.Process.DesiredNGENCompilerFlags, possibly because the process was attached: {0}", ex.Message));
 			}
 			e.Process.EnableLogMessages (true);
 			e.Continue = true;
 		}
-		void OnCreateThread (object sender, CorThreadEventArgs e)
+		void OnCreateThread (object sender, CorApi.Portable.ThreadEventArgs e)
 		{
 			OnDebuggerOutput (false, string.Format ("Started Thread {0}\n", e.Thread.Id));
 			e.Continue = true;
 		}
 
-		void OnAssemblyLoad (object sender, CorAssemblyEventArgs e)
+		void OnAssemblyLoad (object sender, CorApi.Portable.AssemblyEventArgs e)
 		{
 			OnDebuggerOutput (false, string.Format ("Loaded Assembly '{0}'\n", e.Assembly.Name));
 			e.Continue = true;
 		}
 		
-		void OnException2 (object sender, CorException2EventArgs e)
+		void OnException2 (object sender, CorApi.Portable.Exception2EventArgs e)
 		{
 			lock (debugLock) {
 				if (evaluating) {
@@ -821,17 +823,17 @@ namespace Mono.Debugging.Win32
 			TargetEventArgs args = null;
 			
 			switch (e.EventType) {
-				case CorDebugExceptionCallbackType.DEBUG_EXCEPTION_FIRST_CHANCE:
+				case CorApi.Portable.CorDebugExceptionCallbackType.DebugExceptionFirstChance:
 					if (!this.Options.ProjectAssembliesOnly && IsCatchpoint (e))
 						args = new TargetEventArgs (TargetEventType.ExceptionThrown);
 					break;
-				case CorDebugExceptionCallbackType.DEBUG_EXCEPTION_USER_FIRST_CHANCE:
+				case CorApi.Portable.CorDebugExceptionCallbackType.DebugExceptionUserFirstChance:
 					if (IsCatchpoint (e))
 						args = new TargetEventArgs (TargetEventType.ExceptionThrown);
 					break;
-				case CorDebugExceptionCallbackType.DEBUG_EXCEPTION_CATCH_HANDLER_FOUND:
+				case CorApi.Portable.CorDebugExceptionCallbackType.DebugExceptionCatchHandlerFound:
 					break;
-				case CorDebugExceptionCallbackType.DEBUG_EXCEPTION_UNHANDLED:
+				case CorApi.Portable.CorDebugExceptionCallbackType.DebugExceptionUnhandled:
 					args = new TargetEventArgs (TargetEventType.UnhandledException);
 					break;
 			}
@@ -840,7 +842,7 @@ namespace Mono.Debugging.Win32
 				OnStopped ();
 				e.Continue = false;
 				// If an exception is thrown while stepping, cancel the stepping operation
-				if (stepper != null && stepper.IsActive ())
+				if (stepper != null && stepper.IsActive)
 					stepper.Deactivate ();
 				autoStepInto = false;
 				SetActiveThread (e.Thread);
@@ -900,6 +902,8 @@ namespace Mono.Debugging.Win32
 				dbg = new CorDebugger(version.Last());
 				var lprocess = dbg.DebugActiveProcess((int)procId, false);
 				lprocess.Continue(new SharpDX.Mathematics.Interop.RawBool(false));
+
+				throw new NotImplementedException();
 				//SetupProcess(process);
 				//process.Continue(false);
 			});
@@ -923,6 +927,8 @@ namespace Mono.Debugging.Win32
 				dbg = new CorDebugger(version);
 				var lprocess = dbg.DebugActiveProcess((int)processInfo.Id, false);
 				lprocess.Continue(new SharpDX.Mathematics.Interop.RawBool(false));
+
+				throw new NotImplementedException();
 				//SetupProcess(process);
 				//process.Continue(false);
 			});
@@ -935,7 +941,7 @@ namespace Mono.Debugging.Win32
 			{
 				ClearEvalStatus ();
 				ClearHandles ();
-				process.SetAllThreadsDebugState (CorDebugThreadState.THREAD_RUN, null);
+				process.SetAllThreadsDebugState (CorApi.Portable.CorDebugThreadState.ThreadRun, null);
 				process.Continue (false);
 			});
 		}
@@ -981,7 +987,7 @@ namespace Mono.Debugging.Win32
 				if (stepper != null) {
 					stepper.StepOut ();
 					ClearEvalStatus ();
-					process.SetAllThreadsDebugState (CorDebugThreadState.THREAD_RUN, null);
+					process.SetAllThreadsDebugState (CorApi.Portable.CorDebugThreadState.ThreadRun, null);
 					process.Continue (false);
 				}
 			});
@@ -996,7 +1002,7 @@ namespace Mono.Debugging.Win32
 		{
 			return MtaThread.Run (delegate
 			{
-				foreach (CorThread t in process.Threads) {
+				foreach (var t in process.Threads) {
 					if (t.Id == threadId) {
 						return new Backtrace (new CorBacktrace (t, this));
 					}
@@ -1010,13 +1016,13 @@ namespace Mono.Debugging.Win32
 			return MtaThread.Run (delegate
 			{
 				List<ThreadInfo> list = new List<ThreadInfo> ();
-				foreach (CorThread t in process.Threads)
+				foreach (CorApi.Portable.Thread t in process.Threads)
 					list.Add (GetThread (t));
 				return list.ToArray ();
 			});
 		}
 
-		internal ISymbolReader GetReaderForModule (CorModule module)
+		internal ISymbolReader GetReaderForModule (CorApi.Portable.Module module)
 		{
 			lock (appDomainsLock) {
 				AppDomainInfo appDomainInfo;
@@ -1315,7 +1321,7 @@ namespace Mono.Debugging.Win32
 			try {
 				ObjectAdapter.CancelAsyncOperations ();
 				if (stepper != null) {
-					CorFrame frame = activeThread.ActiveFrame;
+					var frame = activeThread.ActiveFrame;
 					ISymbolReader reader = GetReaderForModule (frame.Function.Module);
 					if (reader == null) {
 						RawContinue (into);
@@ -1332,28 +1338,28 @@ namespace Mono.Debugging.Win32
 					frame.GetIP (out offset, out mappingResult);
 
 					// Exclude all ranges belonging to the current line
-					List<COR_DEBUG_STEP_RANGE> ranges = new List<COR_DEBUG_STEP_RANGE> ();
+					var ranges = new List<CorApi.Portable.CorDebugStepRange> ();
 					var sequencePoints = met.GetSequencePoints ().ToArray ();
 					for (int i = 0; i < sequencePoints.Length; i++) {
 						if (sequencePoints [i].Offset > offset) {
-							var r = new COR_DEBUG_STEP_RANGE ();
-							r.startOffset = i == 0 ? 0 : (uint)sequencePoints [i - 1].Offset;
-							r.endOffset = (uint)sequencePoints [i].Offset;
+							var r = new CorApi.Portable.CorDebugStepRange();
+							r.StartOffset = i == 0 ? 0 : sequencePoints [i - 1].Offset;
+							r.EndOffset = sequencePoints [i].Offset;
 							ranges.Add (r);
 							break;
 						}
 					}
 					if (ranges.Count == 0 && sequencePoints.Length > 0) {
-						var r = new COR_DEBUG_STEP_RANGE ();
-						r.startOffset = (uint)sequencePoints [sequencePoints.Length - 1].Offset;
-						r.endOffset = uint.MaxValue;
+						var r = new CorApi.Portable.CorDebugStepRange();
+						r.StartOffset = sequencePoints [sequencePoints.Length - 1].Offset;
+						r.EndOffset = int.MaxValue;
 						ranges.Add (r);
 					}
 
 					stepper.StepRange (into, ranges.ToArray ());
 
 					ClearEvalStatus ();
-					process.SetAllThreadsDebugState (CorDebugThreadState.THREAD_RUN, null);
+					process.SetAllThreadsDebugState (CorApi.Portable.CorDebugThreadState.ThreadRun, null);
 					process.Continue (false);
 				}
 			} catch (Exception e) {
@@ -1364,7 +1370,7 @@ namespace Mono.Debugging.Win32
 		private void RawContinue (bool into, bool stepOverAll = false)
 		{
 			if (stepOverAll)
-				stepper.StepRange (into, new[]{ new COR_DEBUG_STEP_RANGE (){ startOffset = 0, endOffset = uint.MaxValue } });
+				stepper.StepRange (into, new[]{ new CorApi.Portable.CorDebugStepRange (){ StartOffset = 0, EndOffset = int.MaxValue } });
 			else
 				stepper.Step (into);
 			ClearEvalStatus ();
@@ -1399,10 +1405,10 @@ namespace Mono.Debugging.Win32
 			MtaThread.Run (delegate
 			{
 				activeThread = null;
-				if (stepper != null && stepper.IsActive ())
+				if (stepper != null && stepper.IsActive)
 					stepper.Deactivate ();
 				stepper = null;
-				foreach (CorThread t in process.Threads) {
+				foreach (CorApi.Portable.Thread t in process.Threads) {
 					if (t.Id == threadId) {
 						SetActiveThread (t);
 						break;
@@ -1411,14 +1417,14 @@ namespace Mono.Debugging.Win32
 			});
 		}
 
-		void SetActiveThread (CorThread t)
+		void SetActiveThread (CorApi.Portable.Thread t)
 		{
 			activeThread = t;
-			if (stepper != null && stepper.IsActive ()) {
+			if (stepper != null && stepper.IsActive) {
 				stepper.Deactivate ();
 			}
-			stepper = activeThread.CreateStepper (); 
-			stepper.SetUnmappedStopMask (CorDebugUnmappedStop.STOP_NONE);
+			stepper = activeThread.CreateStepper ();
+			stepper.UnmappedStopMask = CorApi.Portable.CorDebugUnmappedStop.StopNone;
 			stepper.SetJmcStatus (true);
 		}
 
@@ -1445,8 +1451,8 @@ namespace Mono.Debugging.Win32
 			{
 				process.Stop (0);
 				OnStopped ();
-				CorThread currentThread = null;
-				foreach (CorThread t in process.Threads) {
+				CorApi.Portable.Thread currentThread = null;
+				foreach (CorApi.Portable.Thread t in process.Threads) {
 					currentThread = t;
 					break;
 				}
@@ -1513,7 +1519,7 @@ namespace Mono.Debugging.Win32
 			ManualResetEvent doneEvent = new ManualResetEvent (false);
 			CorValue result = null;
 			var eval = ctx.Eval;
-			DebugEventHandler<CorEvalEventArgs> completeHandler = delegate (object o, CorEvalEventArgs eargs) {
+			CorApi.Portable.DebugEventHandler<CorApi.Portable.EvalEventArgs> completeHandler = delegate (object o, CorApi.Portable.EvalEventArgs eargs) {
 				if (eargs.Eval != eval)
 					return;
 				result = eargs.Eval.Result;
@@ -1521,7 +1527,7 @@ namespace Mono.Debugging.Win32
 				eargs.Continue = false;
 			};
 
-			DebugEventHandler<CorEvalEventArgs> exceptionHandler = delegate(object o, CorEvalEventArgs eargs)
+			CorApi.Portable.DebugEventHandler<CorApi.Portable.EvalEventArgs> exceptionHandler = delegate(object o, CorApi.Portable.EvalEventArgs eargs)
 			{
 				if (eargs.Eval != eval)
 					return;
@@ -1534,7 +1540,7 @@ namespace Mono.Debugging.Win32
 
 			try {
 				createCall (eval);
-				process.SetAllThreadsDebugState (CorDebugThreadState.THREAD_SUSPEND, ctx.Thread);
+				process.SetAllThreadsDebugState (CorApi.Portable.CorDebugThreadState.ThreadSuspend, ctx.Thread);
 				OnStartEvaluating ();
 				ClearEvalStatus ();
 				process.Continue (false);
@@ -1618,13 +1624,13 @@ namespace Mono.Debugging.Win32
 		
 		void ClearHandles ( )
 		{
-			foreach (CorHandleValue handle in handles.Values) {
+			foreach (CorApi.Portable.HandleValue handle in handles.Values) {
 				handle.Dispose ();
 			}
 			handles.Clear ();
 		}
 
-		ProcessInfo GetProcess (CorProcess proc)
+		ProcessInfo GetProcess (CorApi.Portable.Process proc)
 		{
 			ProcessInfo info;
 			lock (processes) {
@@ -1636,7 +1642,7 @@ namespace Mono.Debugging.Win32
 			return info;
 		}
 
-		ThreadInfo GetThread (CorThread thread)
+		ThreadInfo GetThread (CorApi.Portable.Thread thread)
 		{
 			ThreadInfo info;
 			lock (threads) {
@@ -1662,11 +1668,11 @@ namespace Mono.Debugging.Win32
 			}
 		}
 
-		public CorThread GetThread (int id)
+		public CorApi.Portable.Thread GetThread (int id)
 		{
 			try {
 				WaitUntilStopped ();
-				foreach (CorThread t in process.Threads)
+				foreach (CorApi.Portable.Thread t in process.Threads)
 					if (t.Id == id)
 						return t;
 				throw new InvalidOperationException ("Invalid thread id " + id);
@@ -1710,7 +1716,7 @@ namespace Mono.Debugging.Win32
 			return string.Empty;
 		}
 		
-		string EvaluateTrace (CorThread thread, string exp)
+		string EvaluateTrace (CorApi.Portable.Thread thread, string exp)
 		{
 			StringBuilder sb = new StringBuilder ();
 			int last = 0;
@@ -1742,7 +1748,7 @@ namespace Mono.Debugging.Win32
 			return sb.ToString ();
 		}
 		
-		string EvaluateExpression (CorThread thread, string exp)
+		string EvaluateExpression (CorApi.Portable.Thread thread, string exp)
 		{
 			try {
 				if (thread.ActiveFrame == null)
