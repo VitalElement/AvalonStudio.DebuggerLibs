@@ -320,8 +320,8 @@ namespace Microsoft.Samples.Debugging.CorDebug
             }
 
             ICorDebugProcess proc = null;
-
-            m_debugger.CreateProcess (
+            throw new NotImplementedException();
+            /*_debugger.CreateProcessW (
                                   applicationName, 
                                   commandLine, 
                                   processAttributes,
@@ -335,7 +335,7 @@ namespace Microsoft.Samples.Debugging.CorDebug
                                   debuggingFlags,
                                   out proc);
 
-            return CorProcess.GetCorProcess(proc);
+            return CorApi.Portable.Process.GetCorProcess(proc);*/
         }
 
         /** 
@@ -345,7 +345,7 @@ namespace Microsoft.Samples.Debugging.CorDebug
         {
             CorApi.Portable.Process proc = null;
             _debugger.DebugActiveProcess (processId, new SharpDX.Mathematics.Interop.RawBool(win32Attach), out proc);
-            return proc;
+            return CorApi.Portable.Process.GetCorProcess(proc.NativePointer);
         }
 
         /**
@@ -355,20 +355,20 @@ namespace Microsoft.Samples.Debugging.CorDebug
         {
             get
             {
-                ICorDebugProcessEnum eproc = null;
-                m_debugger.EnumerateProcesses (out eproc);
-                return new CorProcessEnumerator (eproc);
+                CorApi.Portable.ProcessEnum eproc = null;
+                _debugger.EnumerateProcesses (out eproc);
+                return new CorApi.Portable.ProcessEnumerator (eproc);
             }
         }
 
         /**
          * Get the Process object for the given PID.
          */
-        public CorProcess GetProcess (int processId)
+        public CorApi.Portable.Process GetProcess (int processId)
         {
-            ICorDebugProcess proc = null;
-            m_debugger.GetProcess ((uint) processId, out proc);
-            return CorProcess.GetCorProcess(proc);
+            CorApi.Portable.Process proc = null;
+            _debugger.GetProcess (processId, out proc);
+            return CorApi.Portable.Process.GetCorProcess(proc.NativePointer);
         }
 
         /**
@@ -451,7 +451,6 @@ namespace Microsoft.Samples.Debugging.CorDebug
 
         void InternalFireEvent(CorApi.Portable.ManagedCallbackType callbackType, CorApi.Portable.CorEventArgs e)
         {
-            Console.WriteLine(e.GetType().ToString());
             CorApi.Portable.Process owner;
             CorApi.Portable.Controller c = e.Controller;
             Debug.Assert(c!=null);
@@ -2106,18 +2105,18 @@ namespace Microsoft.Samples.Debugging.CorDebug
         }
 
         // Get process from controller 
-        static private CorProcess GetProcessFromController(ICorDebugController pController)
+        static private CorApi.Portable.Process GetProcessFromController(CorApi.Portable.Controller pController)
         {
-            CorProcess p;
-            ICorDebugProcess p2 = pController as ICorDebugProcess;
+            CorApi.Portable.Process p;
+            var p2 = pController.QueryInterfaceOrNull<CorApi.Portable.Process>();
             if (p2 != null)
             {
-                p = CorProcess.GetCorProcess(p2);
+                p = CorApi.Portable.Process.GetCorProcess(p2.NativePointer);
             }
             else
             {
-                ICorDebugAppDomain a2 = (ICorDebugAppDomain)pController;
-                p = new CorAppDomain(a2).Process;
+                var a2 = pController.QueryInterfaceOrNull<CorApi.Portable.AppDomain>();
+                p =a2.Process;
             }
             return p;
         }
@@ -2129,7 +2128,7 @@ namespace Microsoft.Samples.Debugging.CorDebug
             CorMDA c = new CorMDA(pMDA);
             string szName = c.Name;
             CorDebugMDAFlags f = c.Flags;
-            CorProcess p = GetProcessFromController(pController);
+            CorProcess p = null;// GetProcessFromController(pController);
 
 
             HandleEvent(ManagedCallbackType.OnMDANotification,

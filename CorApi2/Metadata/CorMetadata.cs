@@ -23,13 +23,13 @@ namespace Microsoft.Samples.Debugging.CorMetadata
     {
         public CorMetadataImport(CorModule managedModule)
         {
-            m_importer = managedModule.GetMetaDataInterface <IMetadataImport>();
+            m_importer = managedModule.GetMetaDataInterface <CorApi.Portable.IMetaDataImport>();
             Debug.Assert(m_importer != null);
         }
 
-        public CorMetadataImport(object metadataImport)
+        public CorMetadataImport(CorApi.Portable.Module metadataImport)
         {
-            m_importer = (IMetadataImport) metadataImport;
+            m_importer = metadataImport.QueryInterfaceOrNull<CorApi.Portable.IMetaDataImport>();
             Debug.Assert(m_importer != null);
         }
 
@@ -253,7 +253,7 @@ namespace Microsoft.Samples.Debugging.CorMetadata
         //
         //////////////////////////////////////////////////////////////////////////////////
 
-        internal IMetadataImport  m_importer;
+        internal CorApi.Portable.IMetaDataImport  m_importer;
         private static readonly char[] TypeDelimeters = new[] {'.', '+'};
     }
 
@@ -265,48 +265,55 @@ namespace Microsoft.Samples.Debugging.CorMetadata
 
     public sealed class MetadataMethodInfo : MethodInfo
     {
-        internal MetadataMethodInfo(IMetadataImport importer, int methodToken, Instantiation instantiation)
+        internal MetadataMethodInfo(CorApi.Portable.IMetaDataImport importer, int methodToken, Instantiation instantiation)
         {
-            if(!importer.IsValidToken((uint)methodToken))
-                throw new ArgumentException();
+            unsafe
+            {
+                if (!importer.IsValidToken(methodToken))
+                    throw new ArgumentException();
 
-            m_importer = importer;
-            m_methodToken=methodToken;
+                m_importer = importer;
+                m_methodToken = methodToken;
 
-            int size;
-            uint pdwAttr;
-            IntPtr ppvSigBlob;
-            uint pulCodeRVA,pdwImplFlags;
-            uint pcbSigBlob;
+                int size;
+                int pdwAttr;
+                IntPtr ppvSigBlob;
+                int pulCodeRVA, pdwImplFlags;
+                int pcbSigBlob;
 
-            m_importer.GetMethodProps((uint)methodToken,
-                                      out m_classToken,
-                                      null,
-                                      0,
-                                      out size,
-                                      out pdwAttr,
-                                      out ppvSigBlob, 
-                                      out pcbSigBlob,
-                                      out pulCodeRVA,
-                                      out pdwImplFlags);
+                m_importer.GetMethodProps(methodToken,
+                                          out m_classToken,
+                                          IntPtr.Zero,
+                                          0,
+                                          out size,
+                                          out pdwAttr,
+                                          out ppvSigBlob,
+                                          out pcbSigBlob,
+                                          out pulCodeRVA,
+                                          out pdwImplFlags);
 
-            StringBuilder szMethodName = new StringBuilder(size);
-            m_importer.GetMethodProps((uint)methodToken,
-                                    out m_classToken,
-                                    szMethodName,
-                                    szMethodName.Capacity,
-                                    out size,
-                                    out pdwAttr,
-                                    out ppvSigBlob, 
-                                    out pcbSigBlob,
-                                    out pulCodeRVA,
-                                    out pdwImplFlags);
 
-			// [Xamarin] Expression evaluator.
-			CorCallingConvention callingConv;
-            MetadataHelperFunctionsExtensions.ReadMethodSignature (importer, instantiation, ref ppvSigBlob, out callingConv, out m_retType, out m_argTypes, out m_sentinelIndex);
-            m_name = szMethodName.ToString();
-            m_methodAttributes = (MethodAttributes)pdwAttr;
+
+                var szMethodName = stackalloc char[size];
+
+                
+                m_importer.GetMethodProps(methodToken,
+                                        out m_classToken,
+                                        (IntPtr)szMethodName,
+                                        size,
+                                        out size,
+                                        out pdwAttr,
+                                        out ppvSigBlob,
+                                        out pcbSigBlob,
+                                        out pulCodeRVA,
+                                        out pdwImplFlags);
+
+                // [Xamarin] Expression evaluator.
+                CorCallingConvention callingConv;
+                MetadataHelperFunctionsExtensions.ReadMethodSignature(importer, instantiation, ref ppvSigBlob, out callingConv, out m_retType, out m_argTypes, out m_sentinelIndex);
+                m_name = new string(szMethodName, 0, size - 1);
+                m_methodAttributes = (MethodAttributes)pdwAttr;
+            }
         }
 
 		// [Xamarin] Expression evaluator.
@@ -464,7 +471,7 @@ namespace Microsoft.Samples.Debugging.CorMetadata
             }
         }
 
-        private IMetadataImport m_importer;
+        private CorApi.Portable.IMetaDataImport m_importer;
         private string m_name;
         private int m_classToken;
         private int m_methodToken;
@@ -791,10 +798,10 @@ namespace Microsoft.Samples.Debugging.CorMetadata
             }
         }*/
         
-        static internal string[] GetGenericArgumentNames(IMetadataImport importer,
+        static internal string[] GetGenericArgumentNames(CorApi.Portable.IMetaDataImport importer,
                                                 int typeOrMethodToken) 
-        {          
-            IMetadataImport2 importer2 = (importer as IMetadataImport2);
+        {
+            CorApi.Portable.IMetaDataImport2 importer2 = importer.QueryInterfaceOrNull< CorApi.Portable.IMetaDataImport2>();
             if(importer2 == null)
                 return new string[0]; // this means we're pre v2.0 debuggees.
             

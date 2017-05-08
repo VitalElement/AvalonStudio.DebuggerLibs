@@ -19,42 +19,47 @@ namespace Microsoft.Samples.Debugging.CorMetadata
 {
     public sealed class MetadataParameterInfo : ParameterInfo
     {
-        internal MetadataParameterInfo(IMetadataImport importer,int paramToken,
+        internal MetadataParameterInfo(CorApi.Portable.IMetaDataImport importer,int paramToken,
                                        MemberInfo memberImpl,Type typeImpl)
         {
-            int parentToken;
-            uint pulSequence,pdwAttr,pdwCPlusTypeFlag,pcchValue,size;
-            
-            IntPtr ppValue;
-            importer.GetParamProps(paramToken,
-                                   out parentToken,
-                                   out pulSequence,
-                                   null,
-                                   0,
-                                   out size,
-                                   out pdwAttr,
-                                   out pdwCPlusTypeFlag,
-                                   out ppValue,
-                                   out pcchValue
-                                   );
-            StringBuilder szName = new StringBuilder((int)size);        
-            importer.GetParamProps(paramToken,
-                                   out parentToken,
-                                   out pulSequence,
-                                   szName,
-                                   (uint)szName.Capacity,
-                                   out size,
-                                   out pdwAttr,
-                                   out pdwCPlusTypeFlag,
-                                   out ppValue,
-                                   out pcchValue
-                                   );
-            NameImpl = szName.ToString();
-            ClassImpl = typeImpl;
-            PositionImpl = (int)pulSequence;
-            AttrsImpl = (ParameterAttributes)pdwAttr;
-            
-            MemberImpl=memberImpl;
+            unsafe
+            {
+                int parentToken;
+                int pulSequence, pdwAttr, pdwCPlusTypeFlag, pcchValue, size;
+
+                IntPtr ppValue;
+                importer.GetParamProps(paramToken,
+                                       out parentToken,
+                                       out pulSequence,
+                                       IntPtr.Zero,
+                                       0,
+                                       out size,
+                                       out pdwAttr,
+                                       out pdwCPlusTypeFlag,
+                                       out ppValue,
+                                       out pcchValue
+                                       );
+
+                var szName = stackalloc char[size];
+
+                importer.GetParamProps(paramToken,
+                                       out parentToken,
+                                       out pulSequence,
+                                       (IntPtr)szName,
+                                       size,
+                                       out size,
+                                       out pdwAttr,
+                                       out pdwCPlusTypeFlag,
+                                       out ppValue,
+                                       out pcchValue
+                                       );
+                NameImpl = new string(szName, 0, size - 1);
+                ClassImpl = typeImpl;
+                PositionImpl = (int)pulSequence;
+                AttrsImpl = (ParameterAttributes)pdwAttr;
+
+                MemberImpl = memberImpl;
+            }
         }
 
         private MetadataParameterInfo(SerializationInfo info, StreamingContext context)

@@ -119,24 +119,24 @@ namespace Microsoft.Samples.Debugging.Extensions
 		public static readonly Dictionary<CorApi.Portable.CorElementType, Type> CoreTypes = new Dictionary<CorApi.Portable.CorElementType, Type> ();
 		static MetadataHelperFunctionsExtensions ()
 		{
-			CoreTypes.Add (CorApi.Portable.CorElementType.ELEMENT_TYPE_BOOLEAN, typeof (bool));
-			CoreTypes.Add (CorApi.Portable.CorElementType.ELEMENT_TYPE_CHAR, typeof (char));
-			CoreTypes.Add (CorApi.Portable.CorElementType.ELEMENT_TYPE_I1, typeof (sbyte));
-			CoreTypes.Add (CorApi.Portable.CorElementType.ELEMENT_TYPE_U1, typeof (byte));
-			CoreTypes.Add (CorApi.Portable.CorElementType.ELEMENT_TYPE_I2, typeof (short));
-			CoreTypes.Add (CorApi.Portable.CorElementType.ELEMENT_TYPE_U2, typeof (ushort));
-			CoreTypes.Add (CorApi.Portable.CorElementType.ELEMENT_TYPE_I4, typeof (int));
-			CoreTypes.Add (CorApi.Portable.CorElementType.ELEMENT_TYPE_U4, typeof (uint));
-			CoreTypes.Add (CorApi.Portable.CorElementType.ELEMENT_TYPE_I8, typeof (long));
-			CoreTypes.Add (CorApi.Portable.CorElementType.ELEMENT_TYPE_U8, typeof (ulong));
-			CoreTypes.Add (CorApi.Portable.CorElementType.ELEMENT_TYPE_R4, typeof (float));
-			CoreTypes.Add (CorApi.Portable.CorElementType.ELEMENT_TYPE_R8, typeof (double));
-			CoreTypes.Add (CorApi.Portable.CorElementType.ELEMENT_TYPE_STRING, typeof (string));
-			CoreTypes.Add (CorApi.Portable.CorElementType.ELEMENT_TYPE_I, typeof (IntPtr));
-			CoreTypes.Add (CorApi.Portable.CorElementType.ELEMENT_TYPE_U, typeof (UIntPtr));
+			CoreTypes.Add (CorApi.Portable.CorElementType.ElementTypeBoolean, typeof (bool));
+			CoreTypes.Add (CorApi.Portable.CorElementType.ElementTypeChar, typeof (char));
+			CoreTypes.Add (CorApi.Portable.CorElementType.ElementTypeI1, typeof (sbyte));
+			CoreTypes.Add (CorApi.Portable.CorElementType.ElementTypeU1, typeof (byte));
+			CoreTypes.Add (CorApi.Portable.CorElementType.ElementTypeI2, typeof (short));
+			CoreTypes.Add (CorApi.Portable.CorElementType.ElementTypeU2, typeof (ushort));
+			CoreTypes.Add (CorApi.Portable.CorElementType.ElementTypeI4, typeof (int));
+			CoreTypes.Add (CorApi.Portable.CorElementType.ElementTypeU4, typeof (uint));
+			CoreTypes.Add (CorApi.Portable.CorElementType.ElementTypeI8, typeof (long));
+			CoreTypes.Add (CorApi.Portable.CorElementType.ElementTypeU8, typeof (ulong));
+			CoreTypes.Add (CorApi.Portable.CorElementType.ElementTypeR4, typeof (float));
+			CoreTypes.Add (CorApi.Portable.CorElementType.ElementTypeR8, typeof (double));
+			CoreTypes.Add (CorApi.Portable.CorElementType.ElementTypeString, typeof (string));
+			CoreTypes.Add (CorApi.Portable.CorElementType.ElementTypeI, typeof (IntPtr));
+			CoreTypes.Add (CorApi.Portable.CorElementType.ElementTypeU, typeof (UIntPtr));
 		}
 
-		internal static void ReadMethodSignature (IMetadataImport importer, Instantiation instantiation, ref IntPtr pData, out CorCallingConvention cconv, out Type retType, out List<Type> argTypes, out int sentinelIndex)
+		internal static void ReadMethodSignature (CorApi.Portable.IMetaDataImport importer, Instantiation instantiation, ref IntPtr pData, out CorCallingConvention cconv, out Type retType, out List<Type> argTypes, out int sentinelIndex)
 		{
 			cconv = MetadataHelperFunctions.CorSigUncompressCallingConv (ref pData);
 			uint numArgs = 0;
@@ -172,54 +172,54 @@ namespace Microsoft.Samples.Debugging.Extensions
 			}
 		}
 
-		static Type ReadType (IMetadataImport importer, Instantiation instantiation, ref IntPtr pData)
+		static Type ReadType (CorApi.Portable.IMetaDataImport importer, Instantiation instantiation, ref IntPtr pData)
 		{
-			CorElementType et;
+			CorApi.Portable.CorElementType et;
 			unsafe {
 				var pBytes = (byte*)pData;
-				et = (CorElementType) (*pBytes);
+				et = (CorApi.Portable.CorElementType) (*pBytes);
 				pData = (IntPtr) (pBytes + 1);
 			}
 
-			if ((et & CorElementType.ELEMENT_TYPE_SENTINEL) == CorElementType.ELEMENT_TYPE_SENTINEL) {
-				et ^= CorElementType.ELEMENT_TYPE_SENTINEL; // substract SENTINEL bits from element type to get clean ET
+			if ((et & CorApi.Portable.CorElementType.ElementTypeSentinel) == CorApi.Portable.CorElementType.ElementTypeSentinel) {
+				et ^= CorApi.Portable.CorElementType.ElementTypeSentinel; // substract SENTINEL bits from element type to get clean ET
 			}
 
 			switch (et)
 			{
-			case CorElementType.ELEMENT_TYPE_VOID: return typeof (void);
-			case CorElementType.ELEMENT_TYPE_BOOLEAN: return typeof (bool);
-			case CorElementType.ELEMENT_TYPE_CHAR: return typeof (char);
-			case CorElementType.ELEMENT_TYPE_I1: return typeof (sbyte);
-			case CorElementType.ELEMENT_TYPE_U1: return typeof (byte);
-			case CorElementType.ELEMENT_TYPE_I2: return typeof (short);
-			case CorElementType.ELEMENT_TYPE_U2: return typeof (ushort);
-			case CorElementType.ELEMENT_TYPE_I4: return typeof (int);
-			case CorElementType.ELEMENT_TYPE_U4: return typeof (uint);
-			case CorElementType.ELEMENT_TYPE_I8: return typeof (long);
-			case CorElementType.ELEMENT_TYPE_U8: return typeof (ulong);
-			case CorElementType.ELEMENT_TYPE_R4: return typeof (float);
-			case CorElementType.ELEMENT_TYPE_R8: return typeof (double);
-			case CorElementType.ELEMENT_TYPE_STRING: return typeof (string);
-			case CorElementType.ELEMENT_TYPE_I: return typeof (IntPtr);
-			case CorElementType.ELEMENT_TYPE_U: return typeof (UIntPtr);
-			case CorElementType.ELEMENT_TYPE_OBJECT: return typeof (object);
-			case CorElementType.ELEMENT_TYPE_TYPEDBYREF: return typeof(TypedReference);
+			case CorApi.Portable.CorElementType.ElementTypeVoid: return typeof (void);
+			case CorApi.Portable.CorElementType.ElementTypeBoolean: return typeof (bool);
+			case CorApi.Portable.CorElementType.ElementTypeChar: return typeof (char);
+			case CorApi.Portable.CorElementType.ElementTypeI1: return typeof (sbyte);
+			case CorApi.Portable.CorElementType.ElementTypeU1: return typeof (byte);
+			case CorApi.Portable.CorElementType.ElementTypeI2: return typeof (short);
+			case CorApi.Portable.CorElementType.ElementTypeU2: return typeof (ushort);
+			case CorApi.Portable.CorElementType.ElementTypeI4: return typeof (int);
+			case CorApi.Portable.CorElementType.ElementTypeU4: return typeof (uint);
+			case CorApi.Portable.CorElementType.ElementTypeI8: return typeof (long);
+			case CorApi.Portable.CorElementType.ElementTypeU8: return typeof (ulong);
+			case CorApi.Portable.CorElementType.ElementTypeR4: return typeof (float);
+			case CorApi.Portable.CorElementType.ElementTypeR8: return typeof (double);
+			case CorApi.Portable.CorElementType.ElementTypeString: return typeof (string);
+			case CorApi.Portable.CorElementType.ElementTypeI: return typeof (IntPtr);
+			case CorApi.Portable.CorElementType.ElementTypeU: return typeof (UIntPtr);
+			case CorApi.Portable.CorElementType.ElementTypeObject: return typeof (object);
+			case CorApi.Portable.CorElementType.ElementTypeTypedbyref: return typeof(TypedReference);
 
-			case CorElementType.ELEMENT_TYPE_VAR: {
+			case CorApi.Portable.CorElementType.ElementTypeVar: {
 					var index = MetadataHelperFunctions.CorSigUncompressData (ref pData);
 					if (index < instantiation.TypeArgs.Count) {
 						return instantiation.TypeArgs[(int) index];
 					}
 					return new TypeGenericParameter((int) index);
 				}
-			case CorElementType.ELEMENT_TYPE_MVAR: {
+			case CorApi.Portable.CorElementType.ElementTypeMvar: {
 					// Generic args in methods not supported. Return a dummy type.
 					var index = MetadataHelperFunctions.CorSigUncompressData (ref pData);
 					return new MethodGenericParameter((int) index);
 				}
 
-			case CorElementType.ELEMENT_TYPE_GENERICINST: {
+			case CorApi.Portable.CorElementType.ElementTypeGenericinst: {
 					Type t = ReadType (importer, instantiation, ref pData);
 					var typeArgs = new List<Type> ();
 					uint num = MetadataHelperFunctions.CorSigUncompressData (ref pData);
@@ -229,24 +229,24 @@ namespace Microsoft.Samples.Debugging.Extensions
 					return MetadataExtensions.MakeGeneric (t, typeArgs);
 				}
 
-			case CorElementType.ELEMENT_TYPE_PTR: {
+			case CorApi.Portable.CorElementType.ElementTypePtr: {
 					Type t = ReadType (importer, instantiation, ref pData);
 					return MetadataExtensions.MakePointer (t);
 				}
 
-			case CorElementType.ELEMENT_TYPE_BYREF: {
+			case CorApi.Portable.CorElementType.ElementTypeByref: {
 					Type t = ReadType (importer, instantiation, ref pData);
 					return MetadataExtensions.MakeByRef(t);
 				}
 
-			case CorElementType.ELEMENT_TYPE_END:
-			case CorElementType.ELEMENT_TYPE_VALUETYPE:
-			case CorElementType.ELEMENT_TYPE_CLASS: {
+			case CorApi.Portable.CorElementType.ElementTypeEnd:
+			case CorApi.Portable.CorElementType.ElementTypeValuetype:
+			case CorApi.Portable.CorElementType.ElementTypeClass: {
 					uint token = MetadataHelperFunctions.CorSigUncompressToken (ref pData);
 					return new MetadataType (importer, (int) token);
 				}
 
-			case CorElementType.ELEMENT_TYPE_ARRAY: {
+			case CorApi.Portable.CorElementType.ElementTypeArray: {
 					Type t = ReadType (importer, instantiation, ref pData);
 					int rank = (int)MetadataHelperFunctions.CorSigUncompressData (ref pData);
 					if (rank == 0)
@@ -265,12 +265,12 @@ namespace Microsoft.Samples.Debugging.Extensions
 					return MetadataExtensions.MakeArray (t, sizes, loBounds);
 				}
 
-			case CorElementType.ELEMENT_TYPE_SZARRAY: {
+			case CorApi.Portable.CorElementType.ElementTypeSzarray: {
 					Type t = ReadType (importer, instantiation, ref pData);
 					return MetadataExtensions.MakeArray (t, null, null);
 				}
 
-			case CorElementType.ELEMENT_TYPE_FNPTR: {
+			case CorApi.Portable.CorElementType.ElementTypeFnptr: {
 					CorCallingConvention cconv;
 					Type retType;
 					List<Type> argTypes;
@@ -279,20 +279,20 @@ namespace Microsoft.Samples.Debugging.Extensions
 					return MetadataExtensions.MakeDelegate (retType, argTypes);
 				}
 
-			case CorElementType.ELEMENT_TYPE_CMOD_REQD:
-			case CorElementType.ELEMENT_TYPE_CMOD_OPT: {
+			case CorApi.Portable.CorElementType.ElementTypeCmodReqd:
+			case CorApi.Portable.CorElementType.ElementTypeCmodOptimization: {
 					uint token = MetadataHelperFunctions.CorSigUncompressToken (ref pData);
 					return new MetadataType (importer, (int) token);
 				}
 
-			case CorElementType.ELEMENT_TYPE_INTERNAL:
+			case CorApi.Portable.CorElementType.ElementTypeInternal:
 				return typeof(object); // hack to avoid the exceptions. CLR spec says that this type should never occurs, but it occurs sometimes, mystics
 
-			case CorElementType.ELEMENT_TYPE_NATIVE_ARRAY_TEMPLATE_ZAPSIG:
-			case CorElementType.ELEMENT_TYPE_NATIVE_VALUETYPE_ZAPSIG:
+			case (CorApi.Portable.CorElementType)CorApi.Portable.CorElementTypeExtra.ELEMENT_TYPE_NATIVE_ARRAY_TEMPLATE_ZAPSIG:
+			case (CorApi.Portable.CorElementType)CorApi.Portable.CorElementTypeExtra.ELEMENT_TYPE_NATIVE_VALUETYPE_ZAPSIG:
 				return ReadType (importer, instantiation, ref pData);
 
-			case CorElementType.ELEMENT_TYPE_CANON_ZAPSIG:
+			case (CorApi.Portable.CorElementType)CorApi.Portable.CorElementTypeExtra.ELEMENT_TYPE_CANON_ZAPSIG:
 				return typeof(object); // this is representation of __Canon type, but it's inaccessible, using object instead
 			}
 			throw new NotSupportedException ("Unknown sig element type: " + et);
@@ -300,7 +300,7 @@ namespace Microsoft.Samples.Debugging.Extensions
 
 		static readonly object[] emptyAttributes = new object[0];
 
-		static internal object[] GetDebugAttributes (IMetadataImport importer, int token)
+		static internal object[] GetDebugAttributes (CorApi.Portable.IMetaDataImport importer, int token)
 		{
 			var attributes = new ArrayList ();
 			object attr = GetCustomAttribute (importer, token, typeof (System.Diagnostics.DebuggerTypeProxyAttribute));
@@ -332,13 +332,19 @@ namespace Microsoft.Samples.Debugging.Extensions
 		}
 
 		// [Xamarin] Expression evaluator.
-		static internal object GetCustomAttribute (IMetadataImport importer, int token, Type type)
+		static internal object GetCustomAttribute (CorApi.Portable.IMetaDataImport importer, int token, Type type)
 		{
-			uint sigSize;
+			int sigSize;
 			IntPtr ppvSig;
-			int hr = importer.GetCustomAttributeByName (token, type.FullName, out ppvSig, out sigSize);
-			if (hr != 0)
-				return null;
+            try
+            {
+                importer.GetCustomAttributeByName(token, type.FullName, out ppvSig, out sigSize);
+            }
+            catch(SharpDX.SharpDXException)
+            {
+                return null;
+            }
+			
 
 			var data = new byte[sigSize];
 			Marshal.Copy (ppvSig, data, 0, (int)sigSize);

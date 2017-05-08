@@ -38,7 +38,7 @@ namespace Microsoft.Samples.Debugging.CorMetadata
 
     public sealed class MetadataType : Type
     {
-        internal MetadataType(IMetadataImport importer,int classToken)
+        internal MetadataType(CorApi.Portable.IMetaDataImport importer,int classToken)
         {
             Debug.Assert(importer!=null);
             m_importer = importer;
@@ -714,7 +714,7 @@ namespace Microsoft.Samples.Debugging.CorMetadata
         }
 
         // returns "" for normal classes, returns prefix for nested classes
-        private string GetNestedClassPrefix(IMetadataImport importer, int classToken, TypeAttributes attribs)
+        private string GetNestedClassPrefix(CorApi.Portable.IMetaDataImport importer, int classToken, TypeAttributes attribs)
         {
             if( (attribs & TypeAttributes.VisibilityMask) > TypeAttributes.Public )
             {
@@ -733,7 +733,7 @@ namespace Microsoft.Samples.Debugging.CorMetadata
 
         // member variables
         private string m_name;
-        private IMetadataImport m_importer;
+        private CorApi.Portable.IMetaDataImport m_importer;
         private int m_typeToken;
         private bool m_isEnum;
         private bool m_isFlagsEnum;
