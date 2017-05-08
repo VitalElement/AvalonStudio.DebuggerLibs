@@ -21,15 +21,18 @@ namespace Microsoft.Samples.Debugging.CorMetadata
 {
     public sealed class CorMetadataImport
     {
-        public CorMetadataImport(CorModule managedModule)
+        public CorMetadataImport(CorApi.Portable.Module managedModule)
         {
-            m_importer = managedModule.GetMetaDataInterface <CorApi.Portable.IMetaDataImport>();
+            SharpDX.ComObject mdi = null;
+            managedModule.GetMetaDataInterface (typeof(CorApi.Portable.IMetaDataImport).GUID, out mdi);
+
+            m_importer = mdi.QueryInterfaceOrNull<CorApi.Portable.IMetaDataImport>();
             Debug.Assert(m_importer != null);
         }
 
-        public CorMetadataImport(CorApi.Portable.Module metadataImport)
+        public CorMetadataImport(object metadataImport)
         {
-            m_importer = metadataImport.QueryInterfaceOrNull<CorApi.Portable.IMetaDataImport>();
+           // m_importer = metadataImport.QueryInterfaceOrNull<CorApi.Portable.IMetaDataImport>();
             Debug.Assert(m_importer != null);
         }
 
@@ -257,7 +260,7 @@ namespace Microsoft.Samples.Debugging.CorMetadata
             }
         }
 
-        public object RawCOMObject
+        public SharpDX.ComObject RawCOMObject
         {
             get 
             {

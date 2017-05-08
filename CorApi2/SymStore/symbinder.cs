@@ -120,7 +120,8 @@ namespace Microsoft.Samples.Debugging.CorSymbolStore
         public SymbolBinder()
         {
             Guid CLSID_CorSymBinder = new Guid("0A29FF9E-7F9C-4437-8B11-F424491E3931");
-           // m_binder = (ISymUnmanagedBinder3)Activator.CreateInstance(Type.GetTypeFromCLSID(CLSID_CorSymBinder));
+            //TODO what do we do here!
+            m_binder = (ISymUnmanagedBinder3)Activator.CreateInstance(Type.GetTypeFromCLSID(CLSID_CorSymBinder));
         }
         
         /// <include file='doc\symbinder.uex' path='docs/doc[@for="SymbolBinder.GetReader"]/*' />
@@ -175,7 +176,7 @@ namespace Microsoft.Samples.Debugging.CorSymbolStore
             IntPtr uImporter = IntPtr.Zero;
             try
             {
-                uImporter = Marshal.GetIUnknownForObject(importer);
+                uImporter = ((importer as SharpDX.ComObject)?.NativePointer).Value;
                 int hr = ((ISymUnmanagedBinder2)m_binder).GetReaderForFile2(uImporter, fileName, searchPath, (int)searchPolicy, out symReader);
                 if (IsFailingResultNormal(hr))
                 {
