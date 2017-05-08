@@ -35,9 +35,9 @@ namespace Mono.Debugging.Win32
 	class ArrayAdaptor: ICollectionAdaptor
 	{
 		readonly CorEvaluationContext ctx;
-		readonly CorValRef<CorArrayValue> valRef;
+		readonly CorValRef<CorApi.Portable.ArrayValue> valRef;
 
-		public ArrayAdaptor (EvaluationContext ctx, CorValRef<CorArrayValue> valRef)
+		public ArrayAdaptor (EvaluationContext ctx, CorValRef<CorApi.Portable.ArrayValue> valRef)
 		{
 			this.ctx = (CorEvaluationContext) ctx;
 			this.valRef = valRef;
@@ -46,7 +46,7 @@ namespace Mono.Debugging.Win32
 		public int[] GetLowerBounds ()
 		{
 			var array = valRef.Val;
-			if (array != null && array.HasBaseIndicies) {
+			if (array != null && array.HasBaseIndiciesP) {
 				return array.GetBaseIndicies ();
 			} else {
 				return new int[GetDimensions ().Length];

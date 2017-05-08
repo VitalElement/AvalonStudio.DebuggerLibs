@@ -432,8 +432,8 @@ namespace Microsoft.Samples.Debugging.CorDebug
 
             _debugger = rawDebuggingAPI;
             _debugger.Initialize();
-
-            _debugger.ManagedHandler_ = new CorApi.Portable.ManagedCallbackImpl().GetNewIntPtr();
+            
+            _debugger.ManagedHandler_ = new CorApi.Portable.ManagedCallbackImpl(InternalFireEvent).GetNewIntPtr();
         }
 
         /**
@@ -449,17 +449,18 @@ namespace Microsoft.Samples.Debugging.CorDebug
          * the process is continued automatically.
          */
 
-        void InternalFireEvent(ManagedCallbackType callbackType,CorEventArgs e)
+        void InternalFireEvent(CorApi.Portable.ManagedCallbackType callbackType, CorApi.Portable.CorEventArgs e)
         {
-            CorProcess owner;
-            CorController c = e.Controller;
+            Console.WriteLine(e.GetType().ToString());
+            CorApi.Portable.Process owner;
+            CorApi.Portable.Controller c = e.Controller;
             Debug.Assert(c!=null);
-            if(c is CorProcess)
-                owner = (CorProcess)c ;
+            if(c is CorApi.Portable.Process)
+                owner = (CorApi.Portable.Process)c ;
             else 
             {
-                Debug.Assert(c is CorAppDomain);
-                owner = (c as CorAppDomain).Process;
+                Debug.Assert(c is CorApi.Portable.AppDomain);
+                owner = (c as CorApi.Portable.AppDomain).Process;
             }
             Debug.Assert(owner!=null);
             try 
@@ -495,7 +496,8 @@ namespace Microsoft.Samples.Debugging.CorDebug
             }
             protected override void HandleEvent(ManagedCallbackType eventId, CorEventArgs args)
             {
-                m_outer.InternalFireEvent(eventId, args);
+                //m_outer.InternalFireEvent(eventId, args);
+                throw new NotImplementedException();
             }
             private CorDebugger m_outer;
         }

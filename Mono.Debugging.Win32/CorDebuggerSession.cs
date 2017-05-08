@@ -1468,7 +1468,7 @@ namespace Mono.Debugging.Win32
 		{
 		}
 
-		public CorValue RuntimeInvoke (CorEvaluationContext ctx, CorApi.Portable.Function function, CorApi.Portable.Type[] typeArgs, CorApi.Portable.Value thisObj, CorApi.Portable.Value[] arguments)
+		public CorApi.Portable.Value RuntimeInvoke (CorEvaluationContext ctx, CorApi.Portable.Function function, CorApi.Portable.Type[] typeArgs, CorApi.Portable.Value thisObj, CorApi.Portable.Value[] arguments)
 		{
 			CorApi.Portable.Value[] args;
 			if (thisObj == null)
@@ -1889,7 +1889,7 @@ namespace Mono.Debugging.Win32
 		public static Type GetTypeInfo (this CorApi.Portable.Type type, CorDebuggerSession session)
 		{
 			Type t;
-			if (MetadataHelperFunctionsExtensions.CoreTypes.TryGetValue ((CorElementType)type.CorType, out t))
+			if (MetadataHelperFunctionsExtensions.CoreTypes.TryGetValue ((CorApi.Portable.CorElementType)type.CorType, out t))
 				return t;
 
 			if (type.CorType == CorApi.Portable.CorElementType.ELEMENT_TYPE_ARRAY || type.CorType == CorApi.Portable.CorElementType.ELEMENT_TYPE_SZARRAY) {
@@ -1953,16 +1953,17 @@ namespace Mono.Debugging.Win32
 				thisVal.Invalidate ();
 				return;
 			}
-				
-			CorReferenceValue s = thisVal.Val.CastToReferenceValue ();
+
+			var s = thisVal.Val.CastToReferenceValue ();
 			if (s != null) {
-				CorReferenceValue v = val.Val.CastToReferenceValue ();
+				var v = val.Val.CastToReferenceValue ();
 				if (v != null) {
-					s.Value = v.Value;
+					throw new NotImplementedException();
+					//s.Value = v.Value;
 					return;
 				}
 			}
-			CorGenericValue gv = CorObjectAdaptor.GetRealObject (cctx, thisVal.Val) as CorGenericValue;
+			var gv = CorObjectAdaptor.GetRealObject (cctx, thisVal.Val) as CorApi.Portable.GenericValue;
 			if (gv != null)
 				gv.SetValue (ctx.Adapter.TargetObjectToObject (ctx, val));
 		}

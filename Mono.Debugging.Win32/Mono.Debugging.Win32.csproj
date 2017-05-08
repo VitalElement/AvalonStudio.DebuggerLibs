@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\AvalonStudio\CorApi.Portable\CorApi.Portable.csproj" />
+    <ProjectReference Include="..\..\AvalonStudio\PortableCom\PortableCom.csproj" />
     <ProjectReference Include="..\CorApi2\CorApi2.NetCore2.csproj" />
     <ProjectReference Include="..\CorApi\CorApi.NetCore2.csproj" />
     <ProjectReference Include="..\Mono.Debugging\Mono.Debugging.csproj" />

@@ -25,12 +25,11 @@ namespace Mono.Debugging.Win32
 				var iCorDebug = CoreClrShimUtil.CreateCorDebugForCommand (
 					dbgShimInterop, cmd, workingDir, env, RuntimeLoadTimeout, out procId);				
 				dbg = new CorDebugger (iCorDebug);
-				var lprocess = dbg.DebugActiveProcess (procId, false);
-				//processId = process.Id;
-				//SetupProcess (process);
-				//process.Continue (false);
 
-				lprocess.Continue(new SharpDX.Mathematics.Interop.RawBool(false));
+				process = dbg.DebugActiveProcess (procId, false);
+				processId = process.Id;
+				SetupProcess (process);
+				process.Continue (false);
 			});
 			OnStarted();
 		}

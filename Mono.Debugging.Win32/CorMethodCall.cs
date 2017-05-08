@@ -8,7 +8,7 @@ using Mono.Debugging.Evaluation;
 
 namespace Mono.Debugging.Win32
 {
-	class CorMethodCall: AsyncOperationBase<CorValue>
+	class CorMethodCall: AsyncOperationBase<CorApi.Portable.Value>
 	{
 		readonly CorEvaluationContext context;
 		readonly CorApi.Portable.Function function;
@@ -79,10 +79,10 @@ namespace Mono.Debugging.Win32
 
 		readonly TaskCompletionSource<OperationResult<CorApi.Portable.Value>> tcs = new TaskCompletionSource<OperationResult<CorApi.Portable.Value>> ();
 
-		protected override Task<OperationResult<CorValue>> InvokeAsyncImpl ()
+		protected override Task<OperationResult<CorApi.Portable.Value>> InvokeAsyncImpl ()
 		{
 			SubscribeOnEvals ();
-
+			
 			if (function.GetMethodInfo (context.Session).Name == ".ctor")
 				eval.NewParameterizedObject (function, typeArgs, args);
 			else
@@ -120,6 +120,7 @@ namespace Mono.Debugging.Win32
 						context.Session.Process.Continue (false);
 					}
 					DebuggerLoggingService.LogMessage ("Calling RudeAbort() for {0} time", abortCallTimes);
+					
 					eval.RudeAbort();
 				}
 

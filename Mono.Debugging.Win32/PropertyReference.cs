@@ -38,25 +38,25 @@ namespace Mono.Debugging.Win32
 		readonly PropertyInfo prop;
 		readonly CorValRef thisobj;
 		readonly CorValRef[] index;
-		readonly CorModule module;
-		readonly CorType declaringType;
+		readonly CorApi.Portable.Module module;
+		readonly CorApi.Portable.Type declaringType;
 		readonly CorValRef.ValueLoader loader;
 		readonly ObjectValueFlags flags;
 		CorValRef cachedValue;
 
-		public PropertyReference (EvaluationContext ctx, PropertyInfo prop, CorValRef thisobj, CorType declaringType)
+		public PropertyReference (EvaluationContext ctx, PropertyInfo prop, CorValRef thisobj, CorApi.Portable.Type declaringType)
 			: this (ctx, prop, thisobj, declaringType, null)
 		{
 		}
 
-		public PropertyReference (EvaluationContext ctx, PropertyInfo prop, CorValRef thisobj, CorType declaringType, CorValRef[] index)
+		public PropertyReference (EvaluationContext ctx, PropertyInfo prop, CorValRef thisobj, CorApi.Portable.Type declaringType, CorValRef[] index)
 			: base (ctx)
 		{
 			this.prop = prop;
 			this.declaringType = declaringType;
-			if (declaringType.Type == CorElementType.ELEMENT_TYPE_ARRAY ||
-			    declaringType.Type == CorElementType.ELEMENT_TYPE_SZARRAY) {
-				this.module = ((CorType)((CorEvaluationContext)ctx).Adapter.GetType (ctx, "System.Object")).Class.Module;
+			if (declaringType.CorType == CorApi.Portable.CorElementType.ELEMENT_TYPE_ARRAY ||
+			    declaringType.CorType == CorApi.Portable.CorElementType.ELEMENT_TYPE_SZARRAY) {
+				this.module = ((CorApi.Portable.Type)((CorEvaluationContext)ctx).Adapter.GetType (ctx, "System.Object")).Class.Module;
 			} else {
 				this.module = declaringType.Class.Module;
 			}
@@ -92,22 +92,22 @@ namespace Mono.Debugging.Win32
 				if (!prop.CanRead)
 					return null;
 				CorEvaluationContext ctx = (CorEvaluationContext) Context;
-				CorValue[] args;
+				CorApi.Portable.Value[] args;
 				if (index != null) {
-					args = new CorValue[index.Length];
+					args = new CorApi.Portable.Value[index.Length];
 					ParameterInfo[] metArgs = prop.GetGetMethod (true).GetParameters ();
 					for (int n = 0; n < index.Length; n++)
 						args[n] = ctx.Adapter.GetBoxedArg (ctx, index[n], metArgs[n].ParameterType).Val;
 				}
 				else
-					args = new CorValue[0];
+					args = new CorApi.Portable.Value[0];
 
 				MethodInfo mi = prop.GetGetMethod (true);
-				CorFunction func = module.GetFunctionFromToken (mi.MetadataToken);
-				CorValue val = null;
-				if (declaringType.Type == CorElementType.ELEMENT_TYPE_ARRAY ||
-				    declaringType.Type == CorElementType.ELEMENT_TYPE_SZARRAY) {
-					val = ctx.RuntimeInvoke (func, new CorType[0], thisobj != null ? thisobj.Val : null, args);
+				var func = module.GetFunctionFromToken (mi.MetadataToken);
+				CorApi.Portable.Value val = null;
+				if (declaringType.CorType == CorApi.Portable.CorElementType.ELEMENT_TYPE_ARRAY ||
+				    declaringType.CorType == CorApi.Portable.CorElementType.ELEMENT_TYPE_SZARRAY) {
+					val = ctx.RuntimeInvoke (func, new CorApi.Portable.Type[0], thisobj != null ? thisobj.Val : null, args);
 				} else {
 					val = ctx.RuntimeInvoke (func, declaringType.TypeParameters, thisobj != null ? thisobj.Val : null, args);
 				}
@@ -115,15 +115,15 @@ namespace Mono.Debugging.Win32
 			}
 			set {
 				CorEvaluationContext ctx = (CorEvaluationContext)Context;
-				CorFunction func = module.GetFunctionFromToken (prop.GetSetMethod (true).MetadataToken);
+				var func = module.GetFunctionFromToken (prop.GetSetMethod (true).MetadataToken);
 				CorValRef val = (CorValRef) value;
-				CorValue[] args;
+				CorApi.Portable.Value[] args;
 				ParameterInfo[] metArgs = prop.GetSetMethod (true).GetParameters ();
 
 				if (index == null)
-					args = new CorValue[1];
+					args = new CorApi.Portable.Value[1];
 				else {
-					args = new CorValue [index.Length + 1];
+					args = new CorApi.Portable.Value [index.Length + 1];
 					for (int n = 0; n < index.Length; n++) {
 						args[n] = ctx.Adapter.GetBoxedArg (ctx, index[n], metArgs[n].ParameterType).Val;
 					}

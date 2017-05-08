@@ -116,24 +116,24 @@ namespace Microsoft.Samples.Debugging.Extensions
 	[CLSCompliant (false)]
 	public static class MetadataHelperFunctionsExtensions
 	{
-		public static readonly Dictionary<CorElementType, Type> CoreTypes = new Dictionary<CorElementType, Type> ();
+		public static readonly Dictionary<CorApi.Portable.CorElementType, Type> CoreTypes = new Dictionary<CorApi.Portable.CorElementType, Type> ();
 		static MetadataHelperFunctionsExtensions ()
 		{
-			CoreTypes.Add (CorElementType.ELEMENT_TYPE_BOOLEAN, typeof (bool));
-			CoreTypes.Add (CorElementType.ELEMENT_TYPE_CHAR, typeof (char));
-			CoreTypes.Add (CorElementType.ELEMENT_TYPE_I1, typeof (sbyte));
-			CoreTypes.Add (CorElementType.ELEMENT_TYPE_U1, typeof (byte));
-			CoreTypes.Add (CorElementType.ELEMENT_TYPE_I2, typeof (short));
-			CoreTypes.Add (CorElementType.ELEMENT_TYPE_U2, typeof (ushort));
-			CoreTypes.Add (CorElementType.ELEMENT_TYPE_I4, typeof (int));
-			CoreTypes.Add (CorElementType.ELEMENT_TYPE_U4, typeof (uint));
-			CoreTypes.Add (CorElementType.ELEMENT_TYPE_I8, typeof (long));
-			CoreTypes.Add (CorElementType.ELEMENT_TYPE_U8, typeof (ulong));
-			CoreTypes.Add (CorElementType.ELEMENT_TYPE_R4, typeof (float));
-			CoreTypes.Add (CorElementType.ELEMENT_TYPE_R8, typeof (double));
-			CoreTypes.Add (CorElementType.ELEMENT_TYPE_STRING, typeof (string));
-			CoreTypes.Add (CorElementType.ELEMENT_TYPE_I, typeof (IntPtr));
-			CoreTypes.Add (CorElementType.ELEMENT_TYPE_U, typeof (UIntPtr));
+			CoreTypes.Add (CorApi.Portable.CorElementType.ELEMENT_TYPE_BOOLEAN, typeof (bool));
+			CoreTypes.Add (CorApi.Portable.CorElementType.ELEMENT_TYPE_CHAR, typeof (char));
+			CoreTypes.Add (CorApi.Portable.CorElementType.ELEMENT_TYPE_I1, typeof (sbyte));
+			CoreTypes.Add (CorApi.Portable.CorElementType.ELEMENT_TYPE_U1, typeof (byte));
+			CoreTypes.Add (CorApi.Portable.CorElementType.ELEMENT_TYPE_I2, typeof (short));
+			CoreTypes.Add (CorApi.Portable.CorElementType.ELEMENT_TYPE_U2, typeof (ushort));
+			CoreTypes.Add (CorApi.Portable.CorElementType.ELEMENT_TYPE_I4, typeof (int));
+			CoreTypes.Add (CorApi.Portable.CorElementType.ELEMENT_TYPE_U4, typeof (uint));
+			CoreTypes.Add (CorApi.Portable.CorElementType.ELEMENT_TYPE_I8, typeof (long));
+			CoreTypes.Add (CorApi.Portable.CorElementType.ELEMENT_TYPE_U8, typeof (ulong));
+			CoreTypes.Add (CorApi.Portable.CorElementType.ELEMENT_TYPE_R4, typeof (float));
+			CoreTypes.Add (CorApi.Portable.CorElementType.ELEMENT_TYPE_R8, typeof (double));
+			CoreTypes.Add (CorApi.Portable.CorElementType.ELEMENT_TYPE_STRING, typeof (string));
+			CoreTypes.Add (CorApi.Portable.CorElementType.ELEMENT_TYPE_I, typeof (IntPtr));
+			CoreTypes.Add (CorApi.Portable.CorElementType.ELEMENT_TYPE_U, typeof (UIntPtr));
 		}
 
 		internal static void ReadMethodSignature (IMetadataImport importer, Instantiation instantiation, ref IntPtr pData, out CorCallingConvention cconv, out Type retType, out List<Type> argTypes, out int sentinelIndex)
@@ -368,7 +368,7 @@ namespace Microsoft.Samples.Debugging.Extensions
 				// Boxed primitive
 				if (atype == 0x51)
 					atype = br.ReadByte ();
-				var et = (CorElementType) atype;
+				var et = (CorApi.Portable.CorElementType) atype;
 				string pname = br.ReadString ();
 				object val = ReadValue (br, CoreTypes [et]);
 

@@ -104,7 +104,7 @@ namespace Mono.Debugging.Win32
 			Session.Frontend.NotifyDebuggerOutput (false, string.Format (message, values));
 		}
 
-		public CorValue RuntimeInvoke (CorFunction function, CorType[] typeArgs, CorValue thisObj, CorValue[] arguments)
+		public CorApi.Portable.Value RuntimeInvoke (CorApi.Portable.Function function, CorApi.Portable.Type[] typeArgs, CorApi.Portable.Value thisObj, CorApi.Portable.Value[] arguments)
 		{
 			return Session.RuntimeInvoke (this, function, typeArgs, thisObj, arguments);
 		}

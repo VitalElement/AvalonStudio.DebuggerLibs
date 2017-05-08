@@ -35,14 +35,14 @@ namespace Mono.Debugging.Win32
 {
 	public class FieldReference: ValueReference
 	{
-		readonly CorType type;
+		readonly CorApi.Portable.Type type;
 		readonly FieldInfo field;
 		readonly CorValRef thisobj;
 		readonly CorValRef.ValueLoader loader;
 		readonly ObjectValueFlags flags;
 		readonly string vname;
 
-		public FieldReference (EvaluationContext ctx, CorValRef thisobj, CorType type, FieldInfo field, string vname, ObjectValueFlags vflags) : base (ctx)
+		public FieldReference (EvaluationContext ctx, CorValRef thisobj, CorApi.Portable.Type type, FieldInfo field, string vname, ObjectValueFlags vflags) : base (ctx)
 		{
 			this.thisobj = thisobj;
 			this.type = type;
@@ -58,7 +58,7 @@ namespace Mono.Debugging.Win32
 			};
 		}
 
-		public FieldReference (EvaluationContext ctx, CorValRef thisobj, CorType type, FieldInfo field)
+		public FieldReference (EvaluationContext ctx, CorValRef thisobj, CorApi.Portable.Type type, FieldInfo field)
 			: this (ctx, thisobj, type, field, null, ObjectValueFlags.Field)
 		{
 		}
@@ -93,7 +93,7 @@ namespace Mono.Debugging.Win32
 					if (val is CorApi.Portable.ObjectValue) {
 						cval = (CorApi.Portable.ObjectValue)val;
 						val = cval.GetFieldValue (type.Class, field.MetadataToken);
-						return new ValRef (val, loader);
+						return new CorValRef (val, loader);
 					}
 					if (val is CorApi.Portable.ReferenceValue) {
 						CorApi.Portable.ReferenceValue rval = (CorApi.Portable.ReferenceValue)val;
@@ -122,7 +122,7 @@ namespace Mono.Debugging.Win32
 			set {
 				((CorValRef)Value).SetValue (Context, (CorValRef) value);
 				if (thisobj != null) {
-					CorObjectValue cob = CorObjectAdaptor.GetRealObject (Context, thisobj) as CorObjectValue;
+					var cob = CorObjectAdaptor.GetRealObject (Context, thisobj) as CorApi.Portable.ObjectValue;
 					if (cob != null && cob.IsValueClass)
 						thisobj.Invalidate (); // Required to make sure that thisobj returns an up-to-date value object
 				}
