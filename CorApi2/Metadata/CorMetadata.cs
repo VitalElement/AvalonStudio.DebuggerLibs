@@ -794,14 +794,14 @@ namespace Microsoft.Samples.Debugging.CorMetadata
 
 
         // uncompress encoded element type
-        internal static CorElementType CorSigUncompressElementType(//Element type
+        internal static CorApi.Portable.CorElementType CorSigUncompressElementType(//Element type
             ref IntPtr pData)             // [IN,OUT] compressed data 
         {
             unsafe
             {
                 byte *pBytes = (byte*)pData;
 
-                CorElementType retval = (CorElementType)(*pBytes++);
+                var retval = (CorApi.Portable.CorElementType)(*pBytes++);
                 pData = (IntPtr)pBytes;
                 return retval;
             }
@@ -851,29 +851,35 @@ namespace Microsoft.Samples.Debugging.CorMetadata
                     Debug.Assert( nOut==1 );
                     if( nOut==1 )
                     {
-                        uint genIndex;
+                        int genIndex;
                         int genFlags, ptkOwner, ptkKind;
-                        ulong genArgNameSize;
+                        int genArgNameSize;
 
-                        importer2.GetGenericParamProps(genTypeToken,
+                        throw new NotImplementedException("GenArgNameSize should be ulong");
+
+                        importer2.GetGenericParamProps(genTypeToken[0],
                                                        out genIndex,
                                                        out genFlags,
                                                        out ptkOwner,
                                                        out ptkKind,
-                                                       null,
+                                                       IntPtr.Zero,
                                                        0,
                                                        out genArgNameSize);
-                        StringBuilder genArgName = new StringBuilder((int)genArgNameSize);
-                        importer2.GetGenericParamProps(genTypeToken,
-                                                       out genIndex,
-                                                       out genFlags,
-                                                       out ptkOwner,
-                                                       out ptkKind,
-                                                       genArgName,
-                                                       (ulong)genArgName.Capacity,
-                                                       out genArgNameSize);
 
-                        genargs[i] = genArgName.ToString();
+                        unsafe
+                        {
+                            var genArgName = stackalloc char[genArgNameSize];
+                            importer2.GetGenericParamProps(genTypeToken[0],
+                                                           out genIndex,
+                                                           out genFlags,
+                                                           out ptkOwner,
+                                                           out ptkKind,
+                                                           (IntPtr)genArgName,
+                                                           genArgNameSize,
+                                                           out genArgNameSize);
+
+                            genargs[i] = new string(genArgName, 0, genArgNameSize - 1);
+                        }
                     }
                     ++i;
                 } while( i<genargs.Length );

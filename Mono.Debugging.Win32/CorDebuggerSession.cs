@@ -1892,7 +1892,7 @@ namespace Mono.Debugging.Win32
 			if (MetadataHelperFunctionsExtensions.CoreTypes.TryGetValue ((CorApi.Portable.CorElementType)type.CorType, out t))
 				return t;
 
-			if (type.CorType == CorApi.Portable.CorElementType.ELEMENT_TYPE_ARRAY || type.CorType == CorApi.Portable.CorElementType.ELEMENT_TYPE_SZARRAY) {
+			if (type.CorType == CorApi.Portable.CorElementType.ElementTypeArray || type.CorType == CorApi.Portable.CorElementType.ElementTypeSzarray) {
 				List<int> sizes = new List<int> ();
 				List<int> loBounds = new List<int> ();
 				for (int n = 0; n < type.Rank; n++) {
@@ -1902,10 +1902,10 @@ namespace Mono.Debugging.Win32
 				return MetadataExtensions.MakeArray (type.FirstTypeParameter.GetTypeInfo (session), sizes, loBounds);
 			}
 
-			if (type.CorType == CorApi.Portable.CorElementType.ELEMENT_TYPE_BYREF)
+			if (type.CorType == CorApi.Portable.CorElementType.ElementTypeByref)
 				return MetadataExtensions.MakeByRef (type.FirstTypeParameter.GetTypeInfo (session));
 
-			if (type.CorType == CorApi.Portable.CorElementType.ELEMENT_TYPE_PTR)
+			if (type.CorType == CorApi.Portable.CorElementType.ElementTypePtr)
 				return MetadataExtensions.MakePointer (type.FirstTypeParameter.GetTypeInfo (session));
 
 			CorMetadataImport mi = session.GetMetadataForModule (type.Class.Module);

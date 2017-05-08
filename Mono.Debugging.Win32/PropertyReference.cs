@@ -54,8 +54,8 @@ namespace Mono.Debugging.Win32
 		{
 			this.prop = prop;
 			this.declaringType = declaringType;
-			if (declaringType.CorType == CorApi.Portable.CorElementType.ELEMENT_TYPE_ARRAY ||
-			    declaringType.CorType == CorApi.Portable.CorElementType.ELEMENT_TYPE_SZARRAY) {
+			if (declaringType.CorType == CorApi.Portable.CorElementType.ElementTypeArray ||
+			    declaringType.CorType == CorApi.Portable.CorElementType.ElementTypeSzarray) {
 				this.module = ((CorApi.Portable.Type)((CorEvaluationContext)ctx).Adapter.GetType (ctx, "System.Object")).Class.Module;
 			} else {
 				this.module = declaringType.Class.Module;
@@ -105,8 +105,8 @@ namespace Mono.Debugging.Win32
 				MethodInfo mi = prop.GetGetMethod (true);
 				var func = module.GetFunctionFromToken (mi.MetadataToken);
 				CorApi.Portable.Value val = null;
-				if (declaringType.CorType == CorApi.Portable.CorElementType.ELEMENT_TYPE_ARRAY ||
-				    declaringType.CorType == CorApi.Portable.CorElementType.ELEMENT_TYPE_SZARRAY) {
+				if (declaringType.CorType == CorApi.Portable.CorElementType.ElementTypeArray ||
+				    declaringType.CorType == CorApi.Portable.CorElementType.ElementTypeSzarray) {
 					val = ctx.RuntimeInvoke (func, new CorApi.Portable.Type[0], thisobj != null ? thisobj.Val : null, args);
 				} else {
 					val = ctx.RuntimeInvoke (func, declaringType.TypeParameters, thisobj != null ? thisobj.Val : null, args);

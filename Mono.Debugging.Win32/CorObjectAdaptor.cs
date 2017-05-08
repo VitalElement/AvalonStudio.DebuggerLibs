@@ -95,7 +95,7 @@ namespace Mono.Debugging.Win32
 
 		public override bool IsValueType (object type)
 		{
-			return ((CorApi.Portable.Type)type).CorType == CorApi.Portable.CorElementType.ELEMENT_TYPE_VALUETYPE;
+			return ((CorApi.Portable.Type)type).CorType == CorApi.Portable.CorElementType.ElementTypeValuetype;
 		}
 
 		public override bool IsClass (EvaluationContext ctx, object type)
@@ -103,9 +103,9 @@ namespace Mono.Debugging.Win32
 			var t = (CorApi.Portable.Type) type;
 			var cctx = (CorEvaluationContext)ctx;
 			Type tt;
-			if (t.CorType == CorApi.Portable.CorElementType.ELEMENT_TYPE_STRING ||
-			   t.CorType == CorApi.Portable.CorElementType.ELEMENT_TYPE_ARRAY ||
-			   t.CorType == CorApi.Portable.CorElementType.ELEMENT_TYPE_SZARRAY)
+			if (t.CorType == CorApi.Portable.CorElementType.ElementTypeString ||
+			   t.CorType == CorApi.Portable.CorElementType.ElementTypeArray ||
+			   t.CorType == CorApi.Portable.CorElementType.ElementTypeSzarray)
 				return true;
 			// Primitive check
 			if (MetadataHelperFunctionsExtensions.CoreTypes.TryGetValue (t.CorType, out tt))
@@ -114,12 +114,12 @@ namespace Mono.Debugging.Win32
 			if (IsIEnumerable (t, cctx.Session))
 				return false;
 
-			return (t.CorType == CorApi.Portable.CorElementType.ELEMENT_TYPE_CLASS && t.Class != null) || IsValueType (t);
+			return (t.CorType == CorApi.Portable.CorElementType.ElementTypeClass && t.Class != null) || IsValueType (t);
 		}
 
 		public override bool IsGenericType (EvaluationContext ctx, object type)
 		{
-			return (((CorApi.Portable.Type)type).CorType == CorApi.Portable.CorElementType.ELEMENT_TYPE_GENERICINST) || base.IsGenericType (ctx, type);
+			return (((CorApi.Portable.Type)type).CorType == CorApi.Portable.CorElementType.ElementTypeGenericinst) || base.IsGenericType (ctx, type);
 		}
 
 		public override bool NullableHasValue (EvaluationContext ctx, object type, object obj)
@@ -143,13 +143,13 @@ namespace Mono.Debugging.Win32
 			if (MetadataHelperFunctionsExtensions.CoreTypes.TryGetValue (type.CorType, out t))
 				return t.FullName;
 			try {
-				if (type.CorType == CorApi.Portable.CorElementType.ELEMENT_TYPE_ARRAY || type.CorType == CorApi.Portable.CorElementType.ELEMENT_TYPE_SZARRAY)
+				if (type.CorType == CorApi.Portable.CorElementType.ElementTypeArray || type.CorType == CorApi.Portable.CorElementType.ElementTypeSzarray)
 					return GetTypeName (ctx, type.FirstTypeParameter) + "[" + new string (',', type.Rank - 1) + "]";
 
-				if (type.CorType == CorApi.Portable.CorElementType.ELEMENT_TYPE_BYREF)
+				if (type.CorType == CorApi.Portable.CorElementType.ElementTypeByref)
 					return GetTypeName (ctx, type.FirstTypeParameter) + "&";
 
-				if (type.CorType == CorApi.Portable.CorElementType.ELEMENT_TYPE_PTR)
+				if (type.CorType == CorApi.Portable.CorElementType.ElementTypePtr)
 					return GetTypeName (ctx, type.FirstTypeParameter) + "*";
 				
 				return type.GetTypeInfo (cctx.Session).FullName;
@@ -261,7 +261,7 @@ namespace Mono.Debugging.Win32
 						continue;
 					var t = mi.GetType(token);
 					CorApi.Portable.Class cls = mod.GetClassFromToken (t.MetadataToken);
-					CorApi.Portable.Type foundType = cls.GetParameterizedType (CorApi.Portable.CorElementType.ELEMENT_TYPE_CLASS, typeArgs);
+					CorApi.Portable.Type foundType = cls.GetParameterizedType (CorApi.Portable.CorElementType.ElementTypeClass, typeArgs);
 					if (foundType != null) {
 						if (!string.IsNullOrEmpty (cacheName)) {
 							nameToTypeCache[cacheName] = foundType;
@@ -395,7 +395,7 @@ namespace Mono.Debugging.Win32
 		static bool IsValueType (CorEvaluationContext ctx, CorValRef val)
 		{
 			var v = GetRealObject (ctx, val);
-			if (v.Type == (int)CorApi.Portable.CorElementType.ELEMENT_TYPE_VALUETYPE)
+			if (v.Type == CorApi.Portable.CorElementType.ElementTypeValuetype)
 				return true;
 			return v is CorApi.Portable.GenericValue;
 		}
@@ -452,7 +452,7 @@ namespace Mono.Debugging.Win32
 
 			CorValRef v = new CorValRef (delegate {
 				CorApi.Portable.Module mod = null;
-				if (methodOwner.CorType == CorApi.Portable.CorElementType.ELEMENT_TYPE_ARRAY || methodOwner.CorType == CorApi.Portable.CorElementType.ELEMENT_TYPE_SZARRAY
+				if (methodOwner.CorType == CorApi.Portable.CorElementType.ElementTypeArray || methodOwner.CorType == CorApi.Portable.CorElementType.ElementTypeSzarray
 					|| MetadataHelperFunctionsExtensions.CoreTypes.ContainsKey (methodOwner.CorType)) {
 					mod = ((CorApi.Portable.Type) ctx.Adapter.GetType (ctx, "System.Object")).Class.Module;
 				}
@@ -463,7 +463,7 @@ namespace Mono.Debugging.Win32
 				var args = new CorApi.Portable.Value[argValues.Length];
 				for (int n = 0; n < args.Length; n++)
 					args[n] = argValues[n].Val;
-				if (methodOwner.CorType == CorApi.Portable.CorElementType.ELEMENT_TYPE_ARRAY || methodOwner.CorType == CorApi.Portable.CorElementType.ELEMENT_TYPE_SZARRAY
+				if (methodOwner.CorType == CorApi.Portable.CorElementType.ElementTypeArray || methodOwner.CorType == CorApi.Portable.CorElementType.ElementTypeSzarray
 					|| MetadataHelperFunctionsExtensions.CoreTypes.ContainsKey (methodOwner.CorType)) {
 					return ctx.RuntimeInvoke (func, new CorApi.Portable.Type[0], target != null ? target.Val : null, args);
 				}
@@ -507,9 +507,9 @@ namespace Mono.Debugging.Win32
 				if (methodName == ".ctor")
 					break; // Can't create objects using constructor from base classes
 				if ((rtype.BaseType == null && rtype.FullName != "System.Object") ||
-				    currentType.CorType == CorApi.Portable.CorElementType.ELEMENT_TYPE_ARRAY ||
-				    currentType.CorType == CorApi.Portable.CorElementType.ELEMENT_TYPE_SZARRAY ||
-				    currentType.CorType == CorApi.Portable.CorElementType.ELEMENT_TYPE_STRING) {
+				    currentType.CorType == CorApi.Portable.CorElementType.ElementTypeArray ||
+				    currentType.CorType == CorApi.Portable.CorElementType.ElementTypeSzarray ||
+				    currentType.CorType == CorApi.Portable.CorElementType.ElementTypeString) {
 					currentType = ctx.Adapter.GetType (ctx, "System.Object") as CorApi.Portable.Type;
 				} else if (rtype.BaseType != null && rtype.BaseType.FullName == "System.ValueType") {
 					currentType = ctx.Adapter.GetType (ctx, "System.ValueType") as CorApi.Portable.Type;
@@ -672,10 +672,10 @@ namespace Mono.Debugging.Win32
 				return false;
 
 			switch (ctype.CorType) {
-				case CorApi.Portable.CorElementType.ELEMENT_TYPE_ARRAY:
-				case CorApi.Portable.CorElementType.ELEMENT_TYPE_SZARRAY:
-				case CorApi.Portable.CorElementType.ELEMENT_TYPE_BYREF:
-				case CorApi.Portable.CorElementType.ELEMENT_TYPE_PTR:
+				case CorApi.Portable.CorElementType.ElementTypeArray:
+				case CorApi.Portable.CorElementType.ElementTypeSzarray:
+				case CorApi.Portable.CorElementType.ElementTypeByref:
+				case CorApi.Portable.CorElementType.ElementTypePtr:
 					return false;
 			}
 
@@ -752,7 +752,7 @@ namespace Mono.Debugging.Win32
 
 		public bool IsPointer (CorApi.Portable.Type targetType)
 		{
-			return targetType.CorType == CorApi.Portable.CorElementType.ELEMENT_TYPE_PTR;
+			return targetType.CorType == CorApi.Portable.CorElementType.ElementTypePtr;
 		}
 
 		public object CreateEnum (EvaluationContext ctx, CorApi.Portable.Type type, object val)
@@ -780,7 +780,7 @@ namespace Mono.Debugging.Win32
 
 			foreach (KeyValuePair<CorApi.Portable.CorElementType, Type> tt in MetadataHelperFunctionsExtensions.CoreTypes) {
 				if (tt.Value == value.GetType ()) {
-					var val = ctx.Eval.CreateValue ((int)tt.Key, null);
+					var val = ctx.Eval.CreateValue (tt.Key, null);
 					var gv = val.CastToGenericValue ();
 					gv.SetValue (value);
 					return new CorValRef (val);
@@ -903,7 +903,7 @@ namespace Mono.Debugging.Win32
 				if (boxVal != null)
 					return Unbox (ctx, boxVal);
 
-				if (obj.ExactType.CorType == CorApi.Portable.CorElementType.ELEMENT_TYPE_STRING)
+				if (obj.ExactType.CorType == CorApi.Portable.CorElementType.ElementTypeString)
 					return obj.CastToStringValue ();
 
 				if (MetadataHelperFunctionsExtensions.CoreTypes.ContainsKey ((CorApi.Portable.CorElementType)obj.Type)) {
@@ -951,7 +951,7 @@ namespace Mono.Debugging.Win32
 			var tpars = new List<CorApi.Portable.Type> ();
 			foreach (CorApi.Portable.Type t in ctx.Frame.TypeParameters)
 				tpars.Add (t);
-			return cls.GetParameterizedType (CorApi.Portable.CorElementType.ELEMENT_TYPE_CLASS, tpars.ToArray ());
+			return cls.GetParameterizedType (CorApi.Portable.CorElementType.ElementTypeClass, tpars.ToArray ());
 		}
 
 		public override IEnumerable<EnumMember> GetEnumMembers (EvaluationContext ctx, object tt)
@@ -1057,7 +1057,7 @@ namespace Mono.Debugging.Win32
 			if (gval != null && (bindingFlags & BindingFlags.Instance) != 0)
 				realType = GetValueType (ctx, gval) as CorApi.Portable.Type;
 
-			if (t.CorType == CorApi.Portable.CorElementType.ELEMENT_TYPE_CLASS && t.Class == null)
+			if (t.CorType == CorApi.Portable.CorElementType.ElementTypeClass && t.Class == null)
 				yield break;
 
 			CorEvaluationContext cctx = (CorEvaluationContext) ctx;
@@ -1458,7 +1458,7 @@ namespace Mono.Debugging.Win32
 			return CorDebugUtil.CallHandlingComExceptions (() => {
 				CorValRef vref = new CorValRef (delegate {
 					var result = ctx.Frame.GetArgument (0);
-					if (result.Type == (int)CorApi.Portable.CorElementType.ELEMENT_TYPE_BYREF)
+					if (result.Type == CorApi.Portable.CorElementType.ElementTypeByref)
 						return result.CastToReferenceValue ().Dereference ();
 					return result;
 				});
@@ -1728,7 +1728,7 @@ namespace Mono.Debugging.Win32
 			foreach (var t in module.DefinedTypes) {
 				if (((MetadataType)t).DeclaringType != null && ((MetadataType)t).DeclaringType.MetadataToken == token) {
 					var cls = mod.GetClassFromToken (((MetadataType)t).MetadataToken);
-					var returnType = cls.GetParameterizedType (CorApi.Portable.CorElementType.ELEMENT_TYPE_CLASS, new CorApi.Portable.Type[0]);
+					var returnType = cls.GetParameterizedType (CorApi.Portable.CorElementType.ElementTypeClass, new CorApi.Portable.Type[0]);
 					if (!IsGeneratedType (returnType.GetTypeInfo (wctx.Session))) {
 						yield return returnType;
 					}

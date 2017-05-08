@@ -52,64 +52,81 @@ namespace Microsoft.Samples.Debugging.CorMetadata
             }
             else
             {
-                StringBuilder szTypedef = null;
-                // get info about the type
-                int size;
-                int ptkExtends;
-                TypeAttributes pdwTypeDefFlags;
-                importer.GetTypeDefProps(classToken,
-                                         null,
-                                         0,
-                                         out size,
-                                         out pdwTypeDefFlags,
-                                         out ptkExtends
-                                         );
-				if (size == 0) {
-					int ptkResScope = 0;
-					importer.GetTypeRefProps (classToken,
-						out ptkResScope,
-						null,
-						0,
-						out size
-					);
-					szTypedef = new StringBuilder (size);
-					importer.GetTypeRefProps (classToken,
-						out ptkResScope,
-						szTypedef,
-						size,
-						out size
-					);
-				} else {
-					szTypedef = new StringBuilder (size);
-					importer.GetTypeDefProps (classToken,
-						szTypedef,
-						szTypedef.Capacity,
-						out size,
-						out pdwTypeDefFlags,
-						out ptkExtends
-					);
-				}
-                m_name = GetNestedClassPrefix(importer,classToken,pdwTypeDefFlags) + szTypedef.ToString();
-
-                // Check whether the type is an enum
-                string baseTypeName = GetTypeName(importer, ptkExtends);
-                
-                IntPtr ppvSig;
-                if (baseTypeName == "System.Enum")
+                unsafe
                 {
-                    m_isEnum = true;
-                    m_enumUnderlyingType = GetEnumUnderlyingType(importer,classToken);
-
-                    // Check for flags enum by looking for FlagsAttribute
-                    uint sigSize = 0;
-                    ppvSig = IntPtr.Zero;
-                    int hr = importer.GetCustomAttributeByName(classToken,"System.FlagsAttribute",out ppvSig,out sigSize);
-                    if (hr < 0)
+                    string name = string.Empty;
+                    // get info about the type
+                    int size;
+                    int ptkExtends;
+                    int pdwTypeDefFlags;
+                    importer.GetTypeDefProps(classToken,
+                                             IntPtr.Zero,
+                                             0,
+                                             out size,
+                                             out pdwTypeDefFlags,
+                                             out ptkExtends
+                                             );
+                    if (size == 0)
                     {
-                        throw new COMException("Exception looking for flags attribute",hr);
+                        int ptkResScope = 0;
+                        importer.GetTypeRefProps(classToken,
+                            out ptkResScope,
+                            IntPtr.Zero,
+                            0,
+                            out size
+                        );
+
+                        
+                        var szTypedef = stackalloc char[size];
+                        importer.GetTypeRefProps(classToken,
+                            out ptkResScope,
+                            (IntPtr)  szTypedef,
+                            size,
+                            out size
+                        );
+
+                        name = new string(szTypedef, 0, size - 1);
                     }
-                    m_isFlagsEnum = (hr == 0);  // S_OK means the attribute is present.
-                }              
+                    else
+                    {
+                        var szTypedef = stackalloc char[size];
+                        importer.GetTypeDefProps(classToken,
+                            (IntPtr)szTypedef,
+                            size,
+                            out size,
+                            out pdwTypeDefFlags,
+                            out ptkExtends
+                        );
+
+                        name = new string(szTypedef, 0, size - 1);
+                    }
+                    m_name = GetNestedClassPrefix(importer, classToken, (TypeAttributes)pdwTypeDefFlags) + name;
+
+                    // Check whether the type is an enum
+                    string baseTypeName = GetTypeName(importer, ptkExtends);
+
+                    IntPtr ppvSig;
+                    if (baseTypeName == "System.Enum")
+                    {
+                        m_isEnum = true;
+                        m_enumUnderlyingType = GetEnumUnderlyingType(importer, classToken);
+
+                        // Check for flags enum by looking for FlagsAttribute
+                        int sigSize = 0;
+                        ppvSig = IntPtr.Zero;
+
+                        try
+                        {
+                            importer.GetCustomAttributeByName(classToken, "System.FlagsAttribute", out ppvSig, out sigSize);
+                            m_isFlagsEnum = true;
+                        }
+                        catch(SharpDX.SharpDXException e)
+                        {
+                            m_isFlagsEnum = false;
+                            throw new COMException("Exception looking for flags attribute", e.HResult);
+                        }
+                    }
+                }
             }
         }
 
@@ -130,32 +147,37 @@ namespace Microsoft.Samples.Debugging.CorMetadata
 			}
 		}
 
-        private static string GetTypeName(IMetadataImport importer, int tk)
+        private static string GetTypeName(CorApi.Portable.IMetaDataImport importer, int tk)
         {
+            unsafe
+            {
+                string result = string.Empty;
                 // Get the base type name
-                StringBuilder sbBaseName = new StringBuilder();
                 MetadataToken token = new MetadataToken(tk);
                 int size;
-                TypeAttributes pdwTypeDefFlags;
+                int pdwTypeDefFlags;
                 int ptkExtends;
-                
+
                 if (token.IsOfType(MetadataTokenType.TypeDef))
                 {
                     importer.GetTypeDefProps(token,
-                                        null,
+                                        IntPtr.Zero,
                                         0,
                                         out size,
                                         out pdwTypeDefFlags,
                                         out ptkExtends
                                         );
-                    sbBaseName.Capacity = size;
+
+                    var sbBaseName = stackalloc char[size];
                     importer.GetTypeDefProps(token,
-                                        sbBaseName,
-                                        sbBaseName.Capacity,
+                                        (IntPtr)sbBaseName,
+                                        size,
                                         out size,
                                         out pdwTypeDefFlags,
                                         out ptkExtends
                                         );
+
+                    result = new string(sbBaseName, 0, size - 1);
                 }
                 else if (token.IsOfType(MetadataTokenType.TypeRef))
                 {
@@ -166,31 +188,34 @@ namespace Microsoft.Samples.Debugging.CorMetadata
                         int resolutionScope;
                         importer.GetTypeRefProps(token,
                                             out resolutionScope,
-                                            null,
+                                            IntPtr.Zero,
                                             0,
                                             out size
                                             );
-                        sbBaseName.Capacity = size;
+                        var sbBaseName = stackalloc char[size];
                         importer.GetTypeRefProps(token,
                                             out resolutionScope,
-                                            sbBaseName,
-                                            sbBaseName.Capacity,
+                                            (IntPtr)sbBaseName,
+                                            size,
                                             out size
                                             );
+
+                        result = new string(sbBaseName, 0, size - 1);
                     }
                 }
                 // Note the base type can also be a TypeSpec token, but that only happens
                 // for arrays, generics, that sort of thing. In this case, we'll leave the base
                 // type name stringbuilder empty, and thus know it's not an enum.
 
-                return sbBaseName.ToString();
+                return result;
+            }
         }
 
-        private static CorElementType GetEnumUnderlyingType(IMetadataImport importer, int tk)
+        private static CorApi.Portable.CorElementType GetEnumUnderlyingType(CorApi.Portable.IMetaDataImport importer, int tk)
         {
                 IntPtr hEnum = IntPtr.Zero;
-                int mdFieldDef;
-                uint numFieldDefs;
+                int[] mdFieldDef = new int[1];
+                int numFieldDefs;
                 int fieldAttributes;
                 int nameSize;
                 int cPlusTypeFlab;
@@ -200,10 +225,10 @@ namespace Microsoft.Samples.Debugging.CorMetadata
                 int size;
                 int classToken;
                 
-                importer.EnumFields(ref hEnum, tk, out mdFieldDef, 1, out numFieldDefs);
+                importer.EnumFields(out hEnum, tk, mdFieldDef, 1, out numFieldDefs);
                 while (numFieldDefs != 0)
                 {
-                    importer. GetFieldProps(mdFieldDef,out classToken,null,0,out nameSize,out fieldAttributes,out ppvSig,out size,out cPlusTypeFlab,out ppValue,out pcchValue);
+                importer.GetFieldProps(mdFieldDef[0], out classToken, IntPtr.Zero, 0, out nameSize, out fieldAttributes, out ppvSig, out size, out cPlusTypeFlab, out ppValue, out pcchValue);
                     Debug.Assert(tk == classToken);
 
                     // Enums should have one instance field that indicates the underlying type
@@ -218,7 +243,7 @@ namespace Microsoft.Samples.Debugging.CorMetadata
                         return MetadataHelperFunctions.CorSigUncompressElementType(ref ppvSigTemp);
                     }
                                                 
-                    importer.EnumFields(ref hEnum, tk, out mdFieldDef, 1, out numFieldDefs);
+                    importer.EnumFields(out hEnum, tk, mdFieldDef, 1, out numFieldDefs);
                 }
 
                 Debug.Fail("Should never get here.");
@@ -272,11 +297,11 @@ namespace Microsoft.Samples.Debugging.CorMetadata
 
 				var token = new MetadataToken(m_typeToken);
 				int size;
-				TypeAttributes pdwTypeDefFlags;
+				int pdwTypeDefFlags;
 				int ptkExtends;
 
 				m_importer.GetTypeDefProps (token,
-				                            null,
+				                            IntPtr.Zero,
 				                            0,
 				                            out size,
 				                            out pdwTypeDefFlags,
@@ -477,14 +502,14 @@ namespace Microsoft.Samples.Debugging.CorMetadata
 			var al = new ArrayList ();
 			var hEnum = new IntPtr ();
 
-			int methodToken;
+			int[] methodToken = new int[1];
 			try {
 				while (true) {
-					uint size;
-					m_importer.EnumProperties (ref hEnum, (int) m_typeToken, out methodToken, 1, out size);
+					int size;
+					m_importer.EnumProperties (out hEnum, m_typeToken, methodToken, 1, out size);
 					if (size == 0)
 						break;
-					var prop = new MetadataPropertyInfo (m_importer, methodToken, this);
+					var prop = new MetadataPropertyInfo (m_importer, methodToken[0], this);
 					try {
 						MethodInfo mi = prop.GetGetMethod (true) ?? prop.GetSetMethod (true);
 						if (mi == null)
@@ -537,18 +562,18 @@ namespace Microsoft.Samples.Debugging.CorMetadata
 			var al = new ArrayList();
 			var hEnum = new IntPtr();
 
-			int impl;
+			int[] impl = new int[1];
 			try 
 			{
 				while(true)
 				{
-					uint size;
-					m_importer.EnumInterfaceImpls (ref hEnum,(int)m_typeToken,out impl,1,out size);
+					int size;
+					m_importer.EnumInterfaceImpls (out hEnum, m_typeToken, impl,1,out size);
 					if(size==0)
 						break;
 					int classTk;
 					int intfTk;
-					m_importer.GetInterfaceImplProps (impl, out classTk, out intfTk);
+					m_importer.GetInterfaceImplProps (impl[0], out classTk, out intfTk);
 					al.Add (new MetadataType (m_importer, intfTk));
 				}
 			}
@@ -573,17 +598,17 @@ namespace Microsoft.Samples.Debugging.CorMetadata
             var al = new ArrayList();
             var hEnum = new IntPtr();
 
-            int fieldToken;
+            int[] fieldToken = new int[1];
             try 
             {
                 while(true)
                 {
-                    uint size;
-                    m_importer.EnumFields(ref hEnum,(int)m_typeToken,out fieldToken,1,out size);
+                    int size;
+                    m_importer.EnumFields(out hEnum, m_typeToken,fieldToken,1,out size);
                     if(size==0)
                         break;
 					// [Xamarin] Expression evaluator.
-					var field = new MetadataFieldInfo (m_importer, fieldToken, this);
+					var field = new MetadataFieldInfo (m_importer, fieldToken[0], this);
 					if (MetadataExtensions.TypeFlagsMatch (field.IsPublic, field.IsStatic, bindingAttr))
 						al.Add (field);
                 }
@@ -600,17 +625,17 @@ namespace Microsoft.Samples.Debugging.CorMetadata
             ArrayList al = new ArrayList();
             IntPtr hEnum = new IntPtr();
 
-            int methodToken;
+            int[] methodToken = new int[1];
             try 
             {
                 while(true)
                 {
                     int size;
-                    m_importer.EnumMethods(ref hEnum,(int)m_typeToken,out methodToken,1,out size);
+                    m_importer.EnumMethods(out hEnum,m_typeToken, methodToken,1,out size);
                     if(size==0)
                         break;
 					// [Xamarin] Expression evaluator.
-					var met = new MetadataMethodInfo (m_importer, methodToken, Instantiation.Create (m_typeArgs));
+					var met = new MetadataMethodInfo (m_importer, methodToken[0], Instantiation.Create (m_typeArgs));
 					if (MetadataExtensions.TypeFlagsMatch (met.IsPublic, met.IsStatic, bindingAttr))
 						al.Add (met);
                 }
@@ -675,7 +700,7 @@ namespace Microsoft.Samples.Debugging.CorMetadata
             }
         }
 
-        public CorElementType EnumUnderlyingType
+        public CorApi.Portable.CorElementType EnumUnderlyingType
         {
             get
             {
@@ -737,7 +762,7 @@ namespace Microsoft.Samples.Debugging.CorMetadata
         private int m_typeToken;
         private bool m_isEnum;
         private bool m_isFlagsEnum;
-        private CorElementType m_enumUnderlyingType;
+        private CorApi.Portable.CorElementType m_enumUnderlyingType;
         private List<KeyValuePair<string,ulong>> m_enumValues;
 		// [Xamarin] Expression evaluator.
 		private object[] m_customAttributes;
@@ -805,12 +830,12 @@ namespace Microsoft.Samples.Debugging.CorMetadata
         //
         public bool MoveNext ()
         {
-            int token;
-            uint c;
+            int[] token = new int[1];
+            int c;
             
-            m_corMeta.m_importer.EnumTypeDefs(ref m_enum,out token,1, out c);
+            m_corMeta.m_importer.EnumTypeDefs(out m_enum, token,1, out c);
             if (c==1) // 1 new element
-                m_type = m_corMeta.GetType(token);
+                m_type = m_corMeta.GetType(token[0]);
             else
                 m_type = null;
             return m_type != null;

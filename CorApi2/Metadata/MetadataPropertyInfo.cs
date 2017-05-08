@@ -13,7 +13,7 @@ namespace Microsoft.Samples.Debugging.CorMetadata
 {
 	public class MetadataPropertyInfo: PropertyInfo
 	{
-		private IMetadataImport m_importer;
+		private CorApi.Portable.IMetaDataImport m_importer;
 		private int m_propertyToken;
 		private MetadataType m_declaringType;
 		private object[] m_customAttributes;
@@ -27,68 +27,72 @@ namespace Microsoft.Samples.Debugging.CorMetadata
 		MetadataMethodInfo m_setter;
 		MetadataMethodInfo m_getter;
 
-		internal MetadataPropertyInfo (IMetadataImport importer, int propertyToken, MetadataType declaringType)
+		internal MetadataPropertyInfo (CorApi.Portable.IMetaDataImport importer, int propertyToken, MetadataType declaringType)
 		{
-			m_importer = importer;
-			m_propertyToken = propertyToken;
-			m_declaringType = declaringType;
+            unsafe
+            {
+                m_importer = importer;
+                m_propertyToken = propertyToken;
+                m_declaringType = declaringType;
 
-			int mdTypeDef;
-			int pchProperty;
-			int pdwPropFlags;
-			IntPtr ppvSig;
-			int pbSig;
-			int pdwCPlusTypeFlag;
-			IntPtr ppDefaultValue;
-			int pcchDefaultValue;
-			int rmdOtherMethod;
-			int pcOtherMethod;
+                int mdTypeDef;
+                int pchProperty;
+                int pdwPropFlags;
+                IntPtr ppvSig;
+                int pbSig;
+                int pdwCPlusTypeFlag;
+                IntPtr ppDefaultValue;
+                int pcchDefaultValue;
+                int[] rmdOtherMethod = new int[0];
+                int pcOtherMethod;
 
-			m_importer.GetPropertyProps (
-				m_propertyToken,
-				out mdTypeDef,
-				null,
-				0,
-				out pchProperty,
-				out pdwPropFlags,
-				out ppvSig,
-				out pbSig,
-				out pdwCPlusTypeFlag,
-				out ppDefaultValue,
-				out pcchDefaultValue,
-				out m_pmdSetter,
-				out m_pmdGetter,
-				out rmdOtherMethod,
-				0,
-				out pcOtherMethod);
+                m_importer.GetPropertyProps(
+                    m_propertyToken,
+                    out mdTypeDef,
+                    IntPtr.Zero,
+                    0,
+                    out pchProperty,
+                    out pdwPropFlags,
+                    out ppvSig,
+                    out pbSig,
+                    out pdwCPlusTypeFlag,
+                    out ppDefaultValue,
+                    out pcchDefaultValue,
+                    out m_pmdSetter,
+                    out m_pmdGetter,
+                    rmdOtherMethod,
+                    0,
+                    out pcOtherMethod);
 
-			StringBuilder szProperty = new StringBuilder (pchProperty);
-			m_importer.GetPropertyProps (
-				m_propertyToken,
-				out mdTypeDef,
-				szProperty,
-				pchProperty,
-				out pchProperty,
-				out pdwPropFlags,
-				out ppvSig,
-				out pbSig,
-				out pdwCPlusTypeFlag,
-				out ppDefaultValue,
-				out pcchDefaultValue,
-				out m_pmdSetter,
-				out m_pmdGetter,
-				out rmdOtherMethod,
-				0,
-				out pcOtherMethod);
+                var szProperty = stackalloc char[pchProperty];
+                m_importer.GetPropertyProps(
+                    m_propertyToken,
+                    out mdTypeDef,
+                    (IntPtr)szProperty,
+                    pchProperty,
+                    out pchProperty,
+                    out pdwPropFlags,
+                    out ppvSig,
+                    out pbSig,
+                    out pdwCPlusTypeFlag,
+                    out ppDefaultValue,
+                    out pcchDefaultValue,
+                    out m_pmdSetter,
+                    out m_pmdGetter,
+                    rmdOtherMethod,
+                    0,
+                    out pcOtherMethod);
 
-			m_propAttributes = (PropertyAttributes) pdwPropFlags;
-			m_name = szProperty.ToString ();
+                m_propAttributes = (PropertyAttributes)pdwPropFlags;
+                m_name = new string(szProperty, 0, pchProperty - 1);
+            }
+
 			MetadataHelperFunctionsExtensions.GetCustomAttribute (importer, propertyToken, typeof (System.Diagnostics.DebuggerBrowsableAttribute));
 
-			if (!m_importer.IsValidToken ((uint)m_pmdGetter))
+			if (!m_importer.IsValidToken (m_pmdGetter))
 				m_pmdGetter = 0;
 
-			if (!m_importer.IsValidToken ((uint)m_pmdSetter))
+			if (!m_importer.IsValidToken (m_pmdSetter))
 				m_pmdSetter = 0;
 		}
 
