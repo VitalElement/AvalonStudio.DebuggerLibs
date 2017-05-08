@@ -85,12 +85,16 @@ namespace Microsoft.Samples.Debugging.CorMetadata
 
             try
             {
-                Guid mvid;
-                m_importer.GetScopeProps(null, 0, out size, out mvid);
-                StringBuilder sb = new StringBuilder(size);
-                m_importer.GetScopeProps(sb, sb.Capacity, out size, out mvid);
-                sb.Length = size;
-                return sb.ToString();
+                unsafe
+                {
+                    Guid mvid;
+                    m_importer.GetScopeProps(IntPtr.Zero, 0, out size, out mvid);
+
+                    var sb = stackalloc char[size];
+                    m_importer.GetScopeProps((IntPtr)sb, size, out size, out mvid);
+
+                    return new string(sb, 0, size - 1);
+                }
             }
             catch
             {
@@ -101,11 +105,16 @@ namespace Microsoft.Samples.Debugging.CorMetadata
         public string GetUserString(int token)
         {
             int size;
-            m_importer.GetUserString(token,null,0,out size);
-            StringBuilder sb = new StringBuilder(size);
-            m_importer.GetUserString(token,sb,sb.Capacity,out size);
-            sb.Length=size;
-            return sb.ToString();
+            m_importer.GetUserString(token, IntPtr.Zero ,0,out size);
+
+            unsafe
+            {
+                var sb = stackalloc char[size];
+
+                m_importer.GetUserString(token, (IntPtr)sb, size, out size);
+
+                return new string(sb, 0, size - 1);
+            }
         }
 
         public const int TokenNotFound = -1;
@@ -159,71 +168,84 @@ namespace Microsoft.Samples.Debugging.CorMetadata
         public string GetTypeNameFromRef(int token)
         {
             int resScope,size;
-            m_importer.GetTypeRefProps(token,out resScope,null,0,out size);
-            StringBuilder sb = new StringBuilder(size);
-            m_importer.GetTypeRefProps(token,out resScope,sb,sb.Capacity,out size);
-            return sb.ToString();
+            m_importer.GetTypeRefProps(token,out resScope,IntPtr.Zero,0,out size);
+            unsafe
+            {
+                var sb = stackalloc char[size];
+
+                m_importer.GetTypeRefProps(token, out resScope, (IntPtr)sb, size, out size);
+                return new string(sb, 0, size - 1);
+            }
         }
 
         public string GetTypeNameFromDef(int token,out int extendsToken)
         {
             int size;
-            TypeAttributes pdwTypeDefFlags;
-            m_importer.GetTypeDefProps(token,null,0,out size,
-                                       out pdwTypeDefFlags,out extendsToken);
-            StringBuilder sb = new StringBuilder(size);
-            m_importer.GetTypeDefProps(token,sb,sb.Capacity,out size,
-                                       out pdwTypeDefFlags,out extendsToken);
-            return sb.ToString();
+            int pdwTypeDefFlags;
+            m_importer.GetTypeDefProps(token, IntPtr.Zero, 0, out size,
+                                       out pdwTypeDefFlags, out extendsToken);
+
+            unsafe
+            {
+                var sb = stackalloc char[size];
+                m_importer.GetTypeDefProps(token, (IntPtr)sb, size, out size,
+                                           out pdwTypeDefFlags, out extendsToken);
+                return new string(sb, 0, size - 1);
+            }
         }
 
 
         public string GetMemberRefName(int token)
         {
-            if(!m_importer.IsValidToken((uint)token))
+            if(!m_importer.IsValidToken(token))
                 throw new ArgumentException();
 
-            uint size;
+            int size;
             int classToken;
             IntPtr ppvSigBlob;
             int pbSig;
 
-            m_importer.GetMemberRefProps((uint)token,
+            m_importer.GetMemberRefProps(token,
                                          out classToken,
-                                         null,
+                                         IntPtr.Zero,
                                          0,
                                          out size,
                                          out ppvSigBlob,
                                          out pbSig
                                          );
 
-            StringBuilder member = new StringBuilder((int)size);
-            m_importer.GetMemberRefProps((uint)token,
-                                         out classToken,
-                                         member,
-                                         member.Capacity,
-                                         out size,
-                                         out ppvSigBlob,
-                                         out pbSig
-                                         );
-
-            string className=null;
-            switch(TokenUtils.TypeFromToken(classToken))
+            unsafe
             {
-            default:
-                Debug.Assert(false);
-                break;
-            case CorTokenType.mdtTypeRef:
-                className = GetTypeNameFromRef(classToken);
-                break;
-            case CorTokenType.mdtTypeDef: 
-                {           
-                    int parentToken;
-                    className = GetTypeNameFromDef(classToken,out parentToken);
-                    break;
+                var member = stackalloc char[size];
+
+                m_importer.GetMemberRefProps(token,
+                                             out classToken,
+                                             (IntPtr)member,
+                                             size,
+                                             out size,
+                                             out ppvSigBlob,
+                                             out pbSig
+                                             );
+
+
+                string className = null;
+                switch (TokenUtils.TypeFromToken(classToken))
+                {
+                    default:
+                        Debug.Assert(false);
+                        break;
+                    case CorTokenType.mdtTypeRef:
+                        className = GetTypeNameFromRef(classToken);
+                        break;
+                    case CorTokenType.mdtTypeDef:
+                        {
+                            int parentToken;
+                            className = GetTypeNameFromDef(classToken, out parentToken);
+                            break;
+                        }
                 }
+                return className + "." + new string(member, 0, size - 1);
             }
-            return className + "." + member.ToString();
         }
 
 
@@ -426,17 +448,17 @@ namespace Microsoft.Samples.Debugging.CorMetadata
             {
                 while(true) 
                 {
-                    uint count;
-                    int paramToken;
-                    m_importer.EnumParams(ref hEnum,
-                                          m_methodToken, out paramToken,1,out count);
+                    int count;
+                    int[] paramToken = new int[1];
+                    m_importer.EnumParams(out hEnum,
+                                          m_methodToken, paramToken,1,out count);
                     if(count!=1)
                         break;
                     // this fixes IndexOutOfRange exception. Sometimes EnumParams gives you a param with position that is out of m_argTypes.Count
                     // return typeof(object) for unmatched parameter
                     Type argType = nArg < m_argTypes.Count ? m_argTypes[nArg++] : typeof(object);
 
-                    var mp = new MetadataParameterInfo (m_importer, paramToken, this, argType);
+                    var mp = new MetadataParameterInfo (m_importer, paramToken[0], this, argType);
 					if (mp.Name != String.Empty)
 						al.Add (mp);
 					//al.Add(new MetadataParameterInfo(m_importer,paramToken,
@@ -813,10 +835,10 @@ namespace Microsoft.Samples.Debugging.CorMetadata
             try{
                 int i=0;
                 do{
-                    uint nOut;
-                    int genTypeToken;
-                    importer2.EnumGenericParams(ref hEnum, typeOrMethodToken, 
-                                                out genTypeToken, 1, out nOut);
+                    int nOut;
+                    int[] genTypeToken = new int[1];
+                    importer2.EnumGenericParams(out hEnum, typeOrMethodToken, 
+                                                genTypeToken, 1, out nOut);
                     if( genargs==null )
                     {
                         int count;
