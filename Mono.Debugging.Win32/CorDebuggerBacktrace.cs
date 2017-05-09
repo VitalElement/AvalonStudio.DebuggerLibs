@@ -110,11 +110,10 @@ namespace Mono.Debugging.Win32
 			if (SequenceCount <= 0)
 				return null;
 
-			CorDebugMappingResult mappingResult;
-			uint ip;
-			throw new NotImplementedException();
-			//frame.GetIP (out ip, out mappingResult);
-			if (mappingResult == CorDebugMappingResult.MAPPING_NO_INFO || mappingResult == CorDebugMappingResult.MAPPING_UNMAPPED_ADDRESS)
+			CorApi.Portable.CorDebugMappingResult mappingResult;
+			int ip;
+			frame.GetIP (out ip, out mappingResult);
+			if (mappingResult == CorApi.Portable.CorDebugMappingResult.MappingNoInformation || mappingResult == CorApi.Portable.CorDebugMappingResult.MappingUnmappedAddress)
 				return null;
 
 			int[] offsets = new int[SequenceCount];

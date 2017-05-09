@@ -344,8 +344,12 @@ namespace Microsoft.Samples.Debugging.Extensions
             {
                 return null;
             }
-			
 
+            if(sigSize == 0)
+            {
+                return null;
+            }
+			
 			var data = new byte[sigSize];
 			Marshal.Copy (ppvSig, data, 0, (int)sigSize);
 			var br = new BinaryReader (new MemoryStream (data));
