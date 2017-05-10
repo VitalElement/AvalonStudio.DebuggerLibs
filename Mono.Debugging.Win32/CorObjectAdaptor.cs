@@ -33,17 +33,14 @@ using System.Diagnostics.SymbolStore;
 using System.Reflection;
 using System.Text;
 using CorApi2.Metadata.Microsoft.Samples.Debugging.CorMetadata;
-using Microsoft.Samples.Debugging.CorDebug;
-using Microsoft.Samples.Debugging.CorMetadata;
 using Mono.Debugging.Backend;
 using Mono.Debugging.Client;
 using Mono.Debugging.Evaluation;
-using CorDebugMappingResult = Microsoft.Samples.Debugging.CorDebug.NativeApi.CorDebugMappingResult;
-using CorElementType = Microsoft.Samples.Debugging.CorDebug.NativeApi.CorElementType;
-using Microsoft.Samples.Debugging.Extensions;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Microsoft.Samples.Debugging.Extensions;
+using Microsoft.Samples.Debugging.CorMetadata;
 
 namespace Mono.Debugging.Win32
 {
@@ -52,7 +49,7 @@ namespace Mono.Debugging.Win32
 		public override bool IsPrimitive (EvaluationContext ctx, object val)
 		{
 			object v = GetRealObject (ctx, val);
-			return (v is CorGenericValue) || (v is CorStringValue);
+			return (v is CorApi.Portable.GenericValue) || (v is CorApi.Portable.StringValue);
 		}
 
 		public override bool IsPointer (EvaluationContext ctx, object val)
@@ -254,7 +251,7 @@ namespace Mono.Debugging.Win32
 			if (unresolvedNames.Contains (cacheName ?? domainPrefixedName))
 				return null;
 			foreach (CorApi.Portable.Module mod in ctx.Session.GetModules (callingDomain)) {
-				CorMetadataImport mi = ctx.Session.GetMetadataForModule (mod);
+				var mi = ctx.Session.GetMetadataForModule (mod);
 				if (mi != null) {
 					var token = mi.GetTypeTokenFromName (name);
 					if (token == CorMetadataImport.TokenNotFound)
@@ -764,9 +761,9 @@ namespace Mono.Debugging.Win32
 			return RuntimeInvoke (ctx, systemEnumType, null, "ToObject", argTypes, args);
 		}
 
-		public bool IsEnum (EvaluationContext ctx, CorType targetType)
+		public bool IsEnum (EvaluationContext ctx, CorApi.Portable.Type targetType)
 		{
-			return (targetType.Type == CorElementType.ELEMENT_TYPE_VALUETYPE || targetType.Type == CorElementType.ELEMENT_TYPE_CLASS) && targetType.Base != null && GetTypeName (ctx, targetType.Base) == "System.Enum";
+			return (targetType.CorType == CorApi.Portable.CorElementType.ElementTypeValuetype || targetType.CorType == CorApi.Portable.CorElementType.ElementTypeClass) && targetType.Base != null && GetTypeName (ctx, targetType.Base) == "System.Enum";
 		}
 
 		public override object CreateValue (EvaluationContext gctx, object value)
