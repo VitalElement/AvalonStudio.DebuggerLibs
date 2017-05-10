@@ -470,7 +470,11 @@ namespace Microsoft.Samples.Debugging.CorDebug
             {
                 if(e.Continue)
                 {
+                    if (!e.Controller.IsDisposed)
+                    {
+                        // This can happen if an exception is thrown then during exit.
                         e.Controller.Continue(false);
+                    }
                 }
             }
         }
