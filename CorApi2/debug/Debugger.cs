@@ -159,10 +159,11 @@ namespace Microsoft.Samples.Debugging.CorDebug
          */
         public void Terminate ()
         {
-            Debug.Assert(m_debugger!=null);
-            ICorDebug d= m_debugger;
-            m_debugger = null;
+            Debug.Assert(_debugger!=null);
+            var d= _debugger;
+            _debugger = null;
             d.Terminate ();
+            d.Dispose();
         }
 
         /**
