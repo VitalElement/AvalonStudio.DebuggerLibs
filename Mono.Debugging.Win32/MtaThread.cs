@@ -17,7 +17,7 @@ namespace Mono.Debugging.Win32
 
 		public static R Run<R> (Func<R> ts, int timeout = 15000)
 		{
-			if (Thread.CurrentThread.GetApartmentState () == ApartmentState.MTA)
+			if (Thread.CurrentThread != runner.MainThread)
 				return ts ();
 
 			R res = default (R);
@@ -29,7 +29,6 @@ namespace Mono.Debugging.Win32
 
 		public static void Run (Action ts, int timeout = 15000)
 		{
-			// If thread is worker thread... just do it.
 			if(Thread.CurrentThread != runner.MainThread)
 			{
 				ts();
@@ -46,7 +45,6 @@ namespace Mono.Debugging.Win32
 					{
 						workThread = new Thread(MtaRunner);
 						workThread.Name = "Win32 Debugger MTA Thread";
-						//workThread.SetApartmentState (ApartmentState.MTA);
 						workThread.IsBackground = true;
 						workThread.Start();
 					}
