@@ -5,6 +5,7 @@ using Microsoft.Samples.Debugging.CorDebug;
 using Microsoft.Samples.Debugging.CorDebug.NativeApi;
 using Mono.Debugging.Client;
 using Mono.Debugging.Evaluation;
+using SharpDX;
 
 namespace Mono.Debugging.Win32
 {
@@ -38,7 +39,7 @@ namespace Mono.Debugging.Win32
 
 		void DoProcessEvalFinished (CorApi.Portable.EvalEventArgs evalArgs, bool isException)
 		{
-			if (evalArgs.Eval != eval)
+			if (!ComObject.EqualsComObject(evalArgs.Eval, eval))
 				return;
 			context.Session.OnEndEvaluating ();
 			evalArgs.Continue = false;
