@@ -23,6 +23,7 @@ namespace Mono.Debugging.Win32
 {
 	public class CorDebuggerSession: DebuggerSession
 	{
+		protected bool _attachMode = false;
 		readonly char[] badPathChars;
 		readonly object debugLock = new object ();
 		readonly object terminateLock = new object ();
@@ -611,12 +612,17 @@ namespace Mono.Debugging.Win32
 			var currentModule = e.Module;
 			CorMetadataImport mi = new CorMetadataImport (currentModule);
 
-			try {
-				// Required to avoid the jit to get rid of variables too early
-				currentModule.JITCompilerFlags = CorApi.Portable.CorDebugJITCompilerFlags.CordebugJitDisableOptimization;
-			}
-			catch {
-				// Some kind of modules don't allow JIT flags to be changed.
+			if (_attachMode)
+			{
+				try
+				{
+					// Required to avoid the jit to get rid of variables too early
+					currentModule.JITCompilerFlags = CorApi.Portable.CorDebugJITCompilerFlags.CordebugJitDisableOptimization;
+				}
+				catch
+				{
+					// Some kind of modules don't allow JIT flags to be changed.
+				}
 			}
 
 			var currentDomain = e.AppDomain;
@@ -790,12 +796,18 @@ namespace Mono.Debugging.Win32
 		void OnCreateProcess (object sender, CorApi.Portable.ProcessEventArgs e)
 		{
 			// Required to avoid the jit to get rid of variables too early
-			// not allowed in attach mode
-			try {
-				e.Process.DesiredNGENCompilerFlags = CorApi.Portable.CorDebugJITCompilerFlags.CordebugJitDisableOptimization;
-			} catch (Exception ex) {
-				DebuggerLoggingService.LogMessage (string.Format ("Unable to set e.Process.DesiredNGENCompilerFlags, possibly because the process was attached: {0}", ex.Message));
+			if (_attachMode)
+			{
+				try
+				{
+					e.Process.DesiredNGENCompilerFlags = CorApi.Portable.CorDebugJITCompilerFlags.CordebugJitDisableOptimization;
+				}
+				catch (Exception ex)
+				{
+					DebuggerLoggingService.LogMessage(string.Format("Unable to set e.Process.DesiredNGENCompilerFlags, possibly because the process was attached: {0}", ex.Message));
+				}
 			}
+
 			e.Process.EnableLogMessages (true);
 			e.Continue = true;
 		}
