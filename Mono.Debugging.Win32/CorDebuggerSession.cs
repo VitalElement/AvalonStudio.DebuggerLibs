@@ -1400,7 +1400,7 @@ namespace Mono.Debugging.Win32
 
 			MtaThread.Run (delegate
 			{
-				var corBpList = (List<CorFunctionBreakpoint>)bi.Handle;
+				var corBpList = (List<CorApi.Portable.FunctionBreakpoint>)bi.Handle;
 				foreach (var corBp in corBpList) {
 					try {
 						corBp.Activate (false);
