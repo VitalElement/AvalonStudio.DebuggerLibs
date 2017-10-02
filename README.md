@@ -1,3 +1,7 @@
+[![official JetBrains project](http://jb.gg/badges/official-flat-square.svg)](https://confluence.jetbrains.com/display/ALL/JetBrains+on+GitHub)
+
+[JetBrains Fork]
+
 This repository contains several libraries which can be used to control the Mono debugger.
 
 * Mono.Debugger.Soft: The Mono Soft Debugger low level API
