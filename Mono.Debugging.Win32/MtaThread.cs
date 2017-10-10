@@ -17,8 +17,10 @@ namespace Mono.Debugging.Win32
 
 		public static R Run<R>(Func<R> ts, int timeout = 15000)
 		{
-			if (Thread.CurrentThread != runner.MainThread)
+			if (Thread.CurrentThread == runner.MainThread)
+			{
 				return ts();
+			}
 
 			R res = default(R);
 			Run(delegate
@@ -30,7 +32,7 @@ namespace Mono.Debugging.Win32
 
 		public static void Run(Action ts, int timeout = 15000)
 		{
-			if (Thread.CurrentThread != workThread)
+			if (Thread.CurrentThread == workThread)
 			{
 				ts();
 				return;
@@ -52,7 +54,7 @@ namespace Mono.Debugging.Win32
 				}
 			}
 
-			runner.InvokeAsync(ts);
+			runner.InvokeAsync(ts).Wait();
 		}
 
 		static void MtaRunner()
