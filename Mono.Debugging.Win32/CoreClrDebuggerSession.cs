@@ -25,7 +25,6 @@ namespace Mono.Debugging.Win32
 				var iCorDebug = CoreClrShimUtil.CreateCorDebugForCommand (
 					dbgShimInterop, cmd, workingDir, env, RuntimeLoadTimeout, (debugger, processId) =>
 					{
-						Console.WriteLine("Attach callback");
 						dbg = new CorDebugger(debugger);
 
 						process = dbg.DebugActiveProcess(processId, false);
@@ -36,8 +35,7 @@ namespace Mono.Debugging.Win32
 					out procId
 					);
 			});
-
-			Console.WriteLine("OnStarted");
+			
 			OnStarted();
 		}
 
