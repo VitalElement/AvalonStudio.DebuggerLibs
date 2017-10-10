@@ -7,7 +7,7 @@ namespace Mono.Debugging.Win32
 	public class CoreClrDebuggerSession : CorDebuggerSession
 	{
 		private readonly DbgShimInterop dbgShimInterop;
-		static readonly TimeSpan RuntimeLoadTimeout = TimeSpan.FromSeconds (1);
+		static readonly TimeSpan RuntimeLoadTimeout = TimeSpan.FromSeconds (30);
 
 		public CoreClrDebuggerSession (char[] badPathChars, string dbgShimPath) : base (badPathChars)
 		{
@@ -23,14 +23,21 @@ namespace Mono.Debugging.Win32
 				var cmd = PrepareCommandLine (startInfo);
 				int procId;
 				var iCorDebug = CoreClrShimUtil.CreateCorDebugForCommand (
-					dbgShimInterop, cmd, workingDir, env, RuntimeLoadTimeout, out procId);				
-				dbg = new CorDebugger (iCorDebug);
+					dbgShimInterop, cmd, workingDir, env, RuntimeLoadTimeout, (debugger, processId) =>
+					{
+						Console.WriteLine("Attach callback");
+						dbg = new CorDebugger(debugger);
 
-				process = dbg.DebugActiveProcess (procId, false);
-				processId = process.Id;
-				SetupProcess (process);
-				process.Continue (false);
+						process = dbg.DebugActiveProcess(processId, false);
+						procId = process.Id;
+						SetupProcess(process);
+						process.Continue(false);
+					},
+					out procId
+					);
 			});
+
+			Console.WriteLine("OnStarted");
 			OnStarted();
 		}
 

@@ -34,7 +34,7 @@ namespace Microsoft.Samples.Debugging.CorDebug
 
         [CLSCompliant(false)]
         public static CorApi.Portable.LocalDebugger CreateCorDebugForCommand(DbgShimInterop dbgShimInterop, string command, string workingDir,
-            IDictionary<string, string> env, TimeSpan runtimeLoadTimeout, out int procId)
+            IDictionary<string, string> env, TimeSpan runtimeLoadTimeout, Action<CorApi.Portable.LocalDebugger, int> onSetup, out int procId)
         {
             unsafe
             {
@@ -48,7 +48,7 @@ namespace Microsoft.Samples.Debugging.CorDebug
                     if (hret != HResults.S_OK)
                         throw new COMException(string.Format("Failed call RegisterForRuntimeStartup: {0}", hret), (int)hret);
                     procId = (int)processId;
-                    return CreateCorDebugImpl(dbgShimInterop, processId, runtimeLoadTimeout, resumeHandle);
+                    return CreateCorDebugImpl(dbgShimInterop, processId, runtimeLoadTimeout, resumeHandle, onSetup);
                 }
                 finally
                 {
@@ -68,7 +68,7 @@ namespace Microsoft.Samples.Debugging.CorDebug
             }
         }
 
-        private static unsafe CorApi.Portable.LocalDebugger CreateCorDebugImpl(DbgShimInterop dbgShimInterop, uint processId, TimeSpan runtimeLoadTimeout, void* resumeHandle)
+        private static unsafe CorApi.Portable.LocalDebugger CreateCorDebugImpl(DbgShimInterop dbgShimInterop, uint processId, TimeSpan runtimeLoadTimeout, void* resumeHandle, Action<CorApi.Portable.LocalDebugger, int> onSetup)
         {
             var waiter = new ManualResetEvent(false);
             CorApi.Portable.LocalDebugger corDebug = null;
@@ -83,6 +83,9 @@ namespace Microsoft.Samples.Debugging.CorDebug
                     }
                     
                     corDebug = SharpDX.ComObject.FromPointer<CorApi.Portable.LocalDebugger>((IntPtr)pCordb);
+
+                    onSetup(corDebug, (int)processId);
+                    
                 }
                 catch (Exception e)
                 {
@@ -104,6 +107,7 @@ namespace Microsoft.Samples.Debugging.CorDebug
             {
                 throw new TimeoutException(string.Format(".NET core load awaiting timed out for {0}", runtimeLoadTimeout));
             }
+
             GC.KeepAlive(callback);
             if (callbackException != null)
                 throw callbackException;
