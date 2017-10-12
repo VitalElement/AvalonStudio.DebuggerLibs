@@ -2,11 +2,12 @@
 
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0</TargetFrameworks>
-    <NoWarn>NU1701</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="ICSharpCode.NRefactory" Version="5.5.1" />
+    <PackageReference Include="ICSharpCode.NRefactory" Version="5.5.1">
+      <NoWarn>NU1701</NoWarn>
+    </PackageReference>
     <PackageReference Include="System.Xml.XmlDocument" Version="4.3.0" />
   </ItemGroup>
 
