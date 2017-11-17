@@ -51,7 +51,7 @@ namespace Mono.Debugging.Win32
 					return ts();					
 				}
 			}
-			else if(Thread.CurrentThread == runner.MainThread)
+			else if(runner != null && Thread.CurrentThread == runner.MainThread)
 			{
 				return ts();				
 			}
@@ -66,6 +66,7 @@ namespace Mono.Debugging.Win32
 
 		public static void Run(Action ts, int timeout = 15000)
 		{
+			// todo check if we are on STAThread (are we called from Main???)
 			if (AvalonStudio.Platforms.Platform.PlatformIdentifier == AvalonStudio.Platforms.PlatformID.Win32NT)
 			{
 				if (Thread.CurrentThread.GetApartmentState() == ApartmentState.MTA)
@@ -74,7 +75,7 @@ namespace Mono.Debugging.Win32
 					return;
 				}
 			}
-			else if(Thread.CurrentThread == runner.MainThread)
+			else if(runner != null && Thread.CurrentThread == runner.MainThread)
 			{
 				ts();
 				return;
@@ -98,6 +99,11 @@ namespace Mono.Debugging.Win32
 						workThread.Name = "Win32 Debugger MTA Thread";
 						workThread.IsBackground = true;
 						workThread.Start();
+
+						while(runner == null)
+						{
+							Thread.Yield();
+						}
 					}
 				}
 			}
