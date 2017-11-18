@@ -5,33 +5,6 @@ using System.Threading.Tasks;
 
 namespace Mono.Debugging.Win32
 {
-	public class CustomSyncContext : SynchronizationContext
-	{
-		private JobRunner _runner;
-
-		public CustomSyncContext (JobRunner runner)
-		{
-			_runner = runner;
-		}
-
-		public override void Send(SendOrPostCallback d, object state)
-		{
-			if (Thread.CurrentThread == _runner.MainThread)
-			{
-				d(state);
-			}
-			else
-			{
-				_runner.InvokeAsync(() => d(state)).Wait();
-			}
-		}
-
-		public override void Post(SendOrPostCallback d, object state)
-		{
-			_runner.InvokeAsync(() => d(state));
-		}
-	}
-
 	public static class MtaThread
 	{
 		static readonly AutoResetEvent wordDoneEvent = new AutoResetEvent(false);
@@ -39,8 +12,7 @@ namespace Mono.Debugging.Win32
 		static readonly object workLock = new object();
 		static Thread workThread;
 		static Exception workError;
-		static readonly object threadLock = new object();
-		static JobRunner runner;
+		static readonly object threadLock = new object();		
 
 		public static Thread MainThread {get; set;}
 
@@ -67,8 +39,7 @@ namespace Mono.Debugging.Win32
 		}
 
 		public static void Run(Action ts, int timeout = 15000)
-		{
-			// todo check if we are on STAThread (are we called from Main???)
+		{			
 			if (AvalonStudio.Platforms.Platform.PlatformIdentifier == AvalonStudio.Platforms.PlatformID.Win32NT)
 			{
 				if (Thread.CurrentThread.GetApartmentState() == ApartmentState.MTA)
@@ -83,41 +54,57 @@ namespace Mono.Debugging.Win32
 				return;
 			}
 
-			lock (workLock)
-			{
-				lock(threadLock)
-				{
+			lock (workLock) {
+				lock (threadLock) {
+					workDelegate = ts;
 					workError = null;
-					if (workThread == null)
-					{
-						workThread = new Thread(MtaRunner);
-
+					if (workThread == null) {
+						workThread = new Thread (MtaRunner);
+						workThread.Name = "Win32 Debugger MTA Thread";
+						
 						if (AvalonStudio.Platforms.Platform.PlatformIdentifier == AvalonStudio.Platforms.PlatformID.Win32NT)
 						{
-							workThread.SetApartmentState(ApartmentState.MTA);
+							workThread.SetApartmentState (ApartmentState.MTA);
 						}
-
-						workThread.Name = "Win32 Debugger MTA Thread";
+						
 						workThread.IsBackground = true;
-						workThread.Start();
-
-						while(runner == null)
-						{
-							Thread.Yield();
-						}
-					}
+						workThread.Start ();
+					} else
+						// Awaken the existing thread
+						Monitor.Pulse (threadLock);
+				}
+				if (!wordDoneEvent.WaitOne (timeout)) {
+					workThread.Abort ();
+					throw new Exception ("Debugger operation timeout on MTA thread.");
 				}
 			}
-
-			runner.InvokeAsync(ts);
+			if (workError != null)
+				throw workError;
 		}
 
-		static void MtaRunner()
+		static void MtaRunner ()
 		{
-			runner = new JobRunner();
+			try {
+				lock (threadLock) {
+					do {
+						try {
+							workDelegate ();
+						} catch (ThreadAbortException) {
+							return;
+						} catch (Exception ex) {
+							workError = ex;
+						} finally {
+							workDelegate = null;
+						}
+						wordDoneEvent.Set ();
+					} while (Monitor.Wait (threadLock, 60000));
 
-			SynchronizationContext.SetSynchronizationContext(new CustomSyncContext(runner));
-			runner.RunLoop(new CancellationToken());
+				}
+			} catch {
+				//Just in case if we abort just in moment when it leaves workDelegate ();
+			} finally {
+				workThread = null;
+			}
 		}
 	}
 }
