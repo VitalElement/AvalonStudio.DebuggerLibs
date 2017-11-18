@@ -25,7 +25,7 @@ namespace Mono.Debugging.Win32
 					return ts();					
 				}
 			}
-			else if(Thread.CurrentThread != MainThread)
+			else
 			{
 				return ts();				
 			}
@@ -48,7 +48,7 @@ namespace Mono.Debugging.Win32
 					return;
 				}
 			}
-			else if(Thread.CurrentThread != MainThread)
+			else
 			{
 				ts();
 				return;
