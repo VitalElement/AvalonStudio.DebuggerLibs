@@ -42,6 +42,8 @@ namespace Mono.Debugging.Win32
 		static readonly object threadLock = new object();
 		static JobRunner runner;
 
+		public static Thread MainThread {get; set;}
+
 		public static R Run<R>(Func<R> ts, int timeout = 15000)
 		{
 			if (AvalonStudio.Platforms.Platform.PlatformIdentifier == AvalonStudio.Platforms.PlatformID.Win32NT)
@@ -51,7 +53,7 @@ namespace Mono.Debugging.Win32
 					return ts();					
 				}
 			}
-			else if(runner != null && Thread.CurrentThread == runner.MainThread)
+			else if(Thread.CurrentThread != MainThread)
 			{
 				return ts();				
 			}
@@ -75,7 +77,7 @@ namespace Mono.Debugging.Win32
 					return;
 				}
 			}
-			else if(runner != null && Thread.CurrentThread == runner.MainThread)
+			else if(Thread.CurrentThread != MainThread)
 			{
 				ts();
 				return;
@@ -83,9 +85,8 @@ namespace Mono.Debugging.Win32
 
 			lock (workLock)
 			{
-				lock (threadLock)
+				lock(threadLock)
 				{
-					workDelegate = ts;
 					workError = null;
 					if (workThread == null)
 					{

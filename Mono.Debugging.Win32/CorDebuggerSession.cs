@@ -77,6 +77,8 @@ namespace Mono.Debugging.Win32
 
 		public CorDebuggerSession(char[] badPathChars)
 		{
+			MtaThread.MainThread = Thread.CurrentThread;
+			
 			this.badPathChars = badPathChars;
 			ObjectAdapter.BusyStateChanged += (sender, e) => SetBusyState (e);
 			var cancellationToken = helperOperationsCancellationTokenSource.Token;
