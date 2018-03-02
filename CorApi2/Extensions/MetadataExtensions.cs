@@ -243,7 +243,7 @@ namespace Microsoft.Samples.Debugging.Extensions
 			case CorApi.Portable.CorElementType.ElementTypeValuetype:
 			case CorApi.Portable.CorElementType.ElementTypeClass: {
 					uint token = MetadataHelperFunctions.CorSigUncompressToken (ref pData);
-					return new MetadataType (importer, (int) token);
+					return new MetadataType (importer, token);
 				}
 
 			case CorApi.Portable.CorElementType.ElementTypeArray: {
@@ -280,9 +280,9 @@ namespace Microsoft.Samples.Debugging.Extensions
 				}
 
 			case CorApi.Portable.CorElementType.ElementTypeCmodReqd:
-			case CorApi.Portable.CorElementType.ElementTypeCmodOptimization: {
+			case CorApi.Portable.CorElementType.ElementTypeCmodOpt: {
 					uint token = MetadataHelperFunctions.CorSigUncompressToken (ref pData);
-					return new MetadataType (importer, (int) token);
+					return new MetadataType (importer, token);
 				}
 
 			case CorApi.Portable.CorElementType.ElementTypeInternal:
@@ -300,7 +300,7 @@ namespace Microsoft.Samples.Debugging.Extensions
 
 		static readonly object[] emptyAttributes = new object[0];
 
-		static internal object[] GetDebugAttributes (CorApi.Portable.IMetaDataImport importer, int token)
+		static internal object[] GetDebugAttributes (CorApi.Portable.IMetaDataImport importer, uint token)
 		{
 			var attributes = new ArrayList ();
 			object attr = GetCustomAttribute (importer, token, typeof (System.Diagnostics.DebuggerTypeProxyAttribute));
@@ -332,15 +332,15 @@ namespace Microsoft.Samples.Debugging.Extensions
 		}
 
 		// [Xamarin] Expression evaluator.
-		static internal object GetCustomAttribute (CorApi.Portable.IMetaDataImport importer, int token, Type type)
+		static internal object GetCustomAttribute (CorApi.Portable.IMetaDataImport importer, uint token, Type type)
 		{
-			int sigSize;
+			uint sigSize;
 			IntPtr ppvSig;
             try
             {
                 importer.GetCustomAttributeByName(token, type.FullName, out ppvSig, out sigSize);
             }
-            catch(SharpDX.SharpDXException)
+            catch(SharpGen.Runtime.SharpGenException)
             {
                 return null;
             }

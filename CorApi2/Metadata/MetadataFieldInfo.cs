@@ -20,7 +20,7 @@ namespace Microsoft.Samples.Debugging.CorMetadata
 {
     public sealed class MetadataFieldInfo : FieldInfo
     {
-        internal MetadataFieldInfo(CorApi.Portable.IMetaDataImport importer,int fieldToken, MetadataType declaringType)
+        internal MetadataFieldInfo(CorApi.Portable.IMetaDataImport importer,uint fieldToken, MetadataType declaringType)
         {
             unsafe {
                 m_importer = importer;
@@ -28,8 +28,8 @@ namespace Microsoft.Samples.Debugging.CorMetadata
                 m_declaringType = declaringType;
 
                 // Initialize
-                int mdTypeDef;
-                int pchField, pcbSigBlob, pdwCPlusTypeFlab, pcchValue, pdwAttr;
+                uint mdTypeDef;
+                uint pchField, pcbSigBlob, pdwCPlusTypeFlab, pcchValue, pdwAttr;
                 IntPtr ppvSigBlob;
                 IntPtr ppvRawValue;
                 m_importer.GetFieldProps(m_fieldToken,
@@ -45,7 +45,7 @@ namespace Microsoft.Samples.Debugging.CorMetadata
                                          out pcchValue
                                          );
 
-                var szField = stackalloc char[pchField];
+                var szField = stackalloc char[(int)pchField];
                 
                 m_importer.GetFieldProps(m_fieldToken,
                                          out mdTypeDef,
@@ -60,7 +60,7 @@ namespace Microsoft.Samples.Debugging.CorMetadata
                                          out pcchValue
                                          );
                 m_fieldAttributes = (FieldAttributes)pdwAttr;
-                m_name = new string(szField, 0, pchField - 1);
+                m_name = new string(szField, 0, (int)pchField - 1);
 
                 // Get the values for static literal fields with primitive types
                 FieldAttributes staticLiteralField = FieldAttributes.Static | FieldAttributes.HasDefault | FieldAttributes.Literal;
@@ -73,7 +73,7 @@ namespace Microsoft.Samples.Debugging.CorMetadata
             }
         }
 
-        private static object ParseDefaultValue(MetadataType declaringType, IntPtr ppvSigBlob, IntPtr ppvRawValue, int rawValueSize)
+        private static object ParseDefaultValue(MetadataType declaringType, IntPtr ppvSigBlob, IntPtr ppvRawValue, uint rawValueSize)
         {
                 IntPtr ppvSigTemp = ppvSigBlob;
                 CorCallingConvention callingConv = MetadataHelperFunctions.CorSigUncompressCallingConv(ref ppvSigTemp);
@@ -121,7 +121,7 @@ namespace Microsoft.Samples.Debugging.CorMetadata
                     case CorApi.Portable.CorElementType.ElementTypeI:
                         return Marshal.ReadIntPtr(ppvRawValue);
                     case CorApi.Portable.CorElementType.ElementTypeString:
-                        return Marshal.PtrToStringAuto (ppvRawValue, rawValueSize);
+                        return Marshal.PtrToStringAuto (ppvRawValue, (int)rawValueSize);
                     case CorApi.Portable.CorElementType.ElementTypeR4:
                         unsafe {
                             return *(float*) ppvRawValue.ToPointer ();
@@ -248,12 +248,12 @@ namespace Microsoft.Samples.Debugging.CorMetadata
         {
             get 
             {
-                return m_fieldToken;
+                return (int)m_fieldToken;
             }
         }
 
         private CorApi.Portable.IMetaDataImport m_importer;
-        private int m_fieldToken;
+        private uint m_fieldToken;
         private MetadataType m_declaringType;
 
         private string m_name;

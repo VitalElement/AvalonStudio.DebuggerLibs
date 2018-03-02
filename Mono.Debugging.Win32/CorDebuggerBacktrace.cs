@@ -15,7 +15,7 @@ namespace Mono.Debugging.Win32
 	class CorBacktrace: BaseBacktrace
 	{
 		CorApi.Portable.Thread thread;
-		readonly int threadId;
+		readonly uint threadId;
 		readonly CorDebuggerSession session;
 		List<CorApi.Portable.Frame> frames;
 		int evalTimestamp;
@@ -102,7 +102,7 @@ namespace Mono.Debugging.Win32
 			if (reader == null)
 				return null;
 
-			ISymbolMethod met = reader.GetMethod (new SymbolToken (frame.Function.Token));
+			ISymbolMethod met = reader.GetMethod (new SymbolToken ((int)frame.Function.Token));
 			if (met == null)
 				return null;
 
@@ -113,7 +113,7 @@ namespace Mono.Debugging.Win32
 			CorApi.Portable.CorDebugMappingResult mappingResult;
 			int ip;
 			frame.GetIP (out ip, out mappingResult);
-			if (mappingResult == CorApi.Portable.CorDebugMappingResult.MappingNoInformation || mappingResult == CorApi.Portable.CorDebugMappingResult.MappingUnmappedAddress)
+			if (mappingResult == CorApi.Portable.CorDebugMappingResult.MappingNoInfo || mappingResult == CorApi.Portable.CorDebugMappingResult.MappingUnmappedAddress)
 				return null;
 
 			int[] offsets = new int[SequenceCount];
@@ -145,7 +145,7 @@ namespace Mono.Debugging.Win32
 						if (lines [j] != SpecialSequencePoint) {
 							return new SequencePoint () {
 								IsSpecial = true,
-								Offset = offsets [j],
+								Offset = (uint)offsets [j],
 								StartLine = lines [j],
 								EndLine = endLines [j],
 								StartColumn = columns [j],
@@ -161,7 +161,7 @@ namespace Mono.Debugging.Win32
 						if (lines [j] != SpecialSequencePoint) {
 							return new SequencePoint () {
 								IsSpecial = true,
-								Offset = offsets [j],
+								Offset = (uint)offsets [j],
 								StartLine = lines [j],
 								EndLine = endLines [j],
 								StartColumn = columns [j],
@@ -178,7 +178,7 @@ namespace Mono.Debugging.Win32
 				} else {
 					return new SequencePoint () {
 						IsSpecial = false,
-						Offset = offsets [i],
+						Offset = (uint)offsets [i],
 						StartLine = lines [i],
 						EndLine = endLines [i],
 						StartColumn = columns [i],
@@ -230,7 +230,7 @@ namespace Mono.Debugging.Win32
 						endLine = sp.EndLine;
 						endColumn = sp.EndColumn;
 						file = sp.Document.URL;
-						address = sp.Offset;
+						address = (int)sp.Offset;
 					}
 
 					if (session.IsExternalCode (file)) {
@@ -267,7 +267,7 @@ namespace Mono.Debugging.Win32
 				case CorApi.Portable.CorDebugInternalFrameType.StubframeAppdomainTransition:
 					method = "[Application Domain Transition]";
 					break;
-				case CorApi.Portable.CorDebugInternalFrameType.StubframeFunctionEval:
+				case CorApi.Portable.CorDebugInternalFrameType.StubframeFuncEval:
 					method = "[Function Evaluation]";
 					break;
 				}

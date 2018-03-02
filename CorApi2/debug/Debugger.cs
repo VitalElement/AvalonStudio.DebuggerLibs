@@ -345,7 +345,7 @@ namespace Microsoft.Samples.Debugging.CorDebug
         public CorApi.Portable.Process DebugActiveProcess (int processId, bool win32Attach)
         {
             CorApi.Portable.Process proc = null;
-            _debugger.DebugActiveProcess (processId, new SharpDX.Mathematics.Interop.RawBool(win32Attach), out proc);
+            _debugger.DebugActiveProcess ((uint)processId, new SharpGen.Runtime.Win32.RawBool(win32Attach), out proc);
             return CorApi.Portable.Process.GetCorProcess(proc.NativePointer);
         }
 
@@ -368,7 +368,7 @@ namespace Microsoft.Samples.Debugging.CorDebug
         public CorApi.Portable.Process GetProcess (int processId)
         {
             CorApi.Portable.Process proc = null;
-            _debugger.GetProcess (processId, out proc);
+            _debugger.GetProcess ((uint)processId, out proc);
             return CorApi.Portable.Process.GetCorProcess(proc.NativePointer);
         }
 
@@ -434,7 +434,7 @@ namespace Microsoft.Samples.Debugging.CorDebug
             _debugger = rawDebuggingAPI;
             _debugger.Initialize();
             
-            _debugger.ManagedHandler_ = new CorApi.Portable.ManagedCallbackImpl(InternalFireEvent).GetNewIntPtr();
+            _debugger.SetManagedHandler(new CorApi.Portable.ManagedCallbackImpl(InternalFireEvent));
         }
 
         /**

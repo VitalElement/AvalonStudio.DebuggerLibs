@@ -19,13 +19,13 @@ namespace Microsoft.Samples.Debugging.CorMetadata
 {
     public sealed class MetadataParameterInfo : ParameterInfo
     {
-        internal MetadataParameterInfo(CorApi.Portable.IMetaDataImport importer,int paramToken,
+        internal MetadataParameterInfo(CorApi.Portable.IMetaDataImport importer, uint paramToken,
                                        MemberInfo memberImpl,Type typeImpl)
         {
             unsafe
             {
-                int parentToken;
-                int pulSequence, pdwAttr, pdwCPlusTypeFlag, pcchValue, size;
+                uint parentToken;
+                uint pulSequence, pdwAttr, pdwCPlusTypeFlag, pcchValue, size;
 
                 IntPtr ppValue;
                 importer.GetParamProps(paramToken,
@@ -40,7 +40,7 @@ namespace Microsoft.Samples.Debugging.CorMetadata
                                        out pcchValue
                                        );
 
-                var szName = stackalloc char[size];
+                var szName = stackalloc char[(int)size];
 
                 importer.GetParamProps(paramToken,
                                        out parentToken,
@@ -53,7 +53,7 @@ namespace Microsoft.Samples.Debugging.CorMetadata
                                        out ppValue,
                                        out pcchValue
                                        );
-                NameImpl = new string(szName, 0, size - 1);
+                NameImpl = new string(szName, 0, (int)size - 1);
                 ClassImpl = typeImpl;
                 PositionImpl = (int)pulSequence;
                 AttrsImpl = (ParameterAttributes)pdwAttr;

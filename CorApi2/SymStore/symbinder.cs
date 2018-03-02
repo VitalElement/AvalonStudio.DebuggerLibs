@@ -15,6 +15,7 @@ namespace Microsoft.Samples.Debugging.CorSymbolStore
     using System.Text;
     using System.Runtime.InteropServices;
     using System.Runtime.InteropServices.ComTypes;
+    using SharpGen.Runtime;
 
     [
         ComImport,
@@ -184,7 +185,7 @@ namespace Microsoft.Samples.Debugging.CorSymbolStore
             IntPtr uImporter = IntPtr.Zero;
             try
             {
-                uImporter = ((importer as SharpDX.ComObject)?.NativePointer).Value;
+                uImporter = ((importer as ComObject)?.NativePointer).Value;
                 int hr = ((ISymUnmanagedBinder2)m_binder).GetReaderForFile2(uImporter, fileName, searchPath, (int)searchPolicy, out symReader);
                 if (IsFailingResultNormal(hr))
                 {

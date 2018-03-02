@@ -92,7 +92,7 @@ namespace Mono.Debugging.Win32
 					val = CorObjectAdaptor.GetRealObject (ctx, thisobj);
 					if (val is CorApi.Portable.ObjectValue) {
 						cval = (CorApi.Portable.ObjectValue)val;
-						val = cval.GetFieldValue (type.Class, field.MetadataToken);
+						val = cval.GetFieldValue (type.Class, (uint)field.MetadataToken);
 						return new CorValRef (val, loader);
 					}
 					if (val is CorApi.Portable.ReferenceValue) {
@@ -111,7 +111,7 @@ namespace Mono.Debugging.Win32
 					return Context.Adapter.CreateValue (ctx, oval);
 				}
 				try {
-					val = type.GetStaticFieldValue (field.MetadataToken, ctx.Frame);
+					val = type.GetStaticFieldValue ((uint)field.MetadataToken, ctx.Frame);
 					return new CorValRef (val, loader);
 				} catch (COMException e) {
 					if (e.ToHResult<HResult> () == HResult.CORDBG_E_STATIC_VAR_NOT_AVAILABLE)
