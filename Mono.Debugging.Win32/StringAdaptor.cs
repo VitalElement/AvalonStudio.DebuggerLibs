@@ -43,7 +43,7 @@ namespace Mono.Debugging.Win32
 		}
 		
 		public int Length {
-			get { return str.Length; }
+			get { return (int)str.Length; }
 		}
 		
 		public string Value {

@@ -103,7 +103,7 @@ namespace Mono.Debugging.Win32
 					args = new CorApi.Portable.Value[0];
 
 				MethodInfo mi = prop.GetGetMethod (true);
-				var func = module.GetFunctionFromToken (mi.MetadataToken);
+				var func = module.GetFunctionFromToken ((uint)mi.MetadataToken);
 				CorApi.Portable.Value val = null;
 				if (declaringType.CorType == CorApi.Portable.CorElementType.ElementTypeArray ||
 				    declaringType.CorType == CorApi.Portable.CorElementType.ElementTypeSzarray) {
@@ -115,7 +115,7 @@ namespace Mono.Debugging.Win32
 			}
 			set {
 				CorEvaluationContext ctx = (CorEvaluationContext)Context;
-				var func = module.GetFunctionFromToken (prop.GetSetMethod (true).MetadataToken);
+				var func = module.GetFunctionFromToken ((uint)prop.GetSetMethod (true).MetadataToken);
 				CorValRef val = (CorValRef) value;
 				CorApi.Portable.Value[] args;
 				ParameterInfo[] metArgs = prop.GetSetMethod (true).GetParameters ();

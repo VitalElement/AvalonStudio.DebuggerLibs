@@ -141,7 +141,7 @@ namespace Mono.Debugging.Win32
 				return t.FullName;
 			try {
 				if (type.CorType == CorApi.Portable.CorElementType.ElementTypeArray || type.CorType == CorApi.Portable.CorElementType.ElementTypeSzarray)
-					return GetTypeName (ctx, type.FirstTypeParameter) + "[" + new string (',', type.Rank - 1) + "]";
+					return GetTypeName (ctx, type.FirstTypeParameter) + "[" + new string (',', (int)type.Rank - 1) + "]";
 
 				if (type.CorType == CorApi.Portable.CorElementType.ElementTypeByref)
 					return GetTypeName (ctx, type.FirstTypeParameter) + "&";
@@ -257,7 +257,7 @@ namespace Mono.Debugging.Win32
 					if (token == CorMetadataImport.TokenNotFound)
 						continue;
 					var t = mi.GetType(token);
-					CorApi.Portable.Class cls = mod.GetClassFromToken (t.MetadataToken);
+					CorApi.Portable.Class cls = mod.GetClassFromToken ((uint)t.MetadataToken);
 					CorApi.Portable.Type foundType = cls.GetParameterizedType (CorApi.Portable.CorElementType.ElementTypeClass, typeArgs);
 					if (foundType != null) {
 						if (!string.IsNullOrEmpty (cacheName)) {
@@ -303,7 +303,7 @@ namespace Mono.Debugging.Win32
             {
                 var tn = new StringBuilder (GetDisplayTypeName (ctx, arr.ExactType.FirstTypeParameter));
                 tn.Append("[");
-                int[] dims = arr.GetDimensions();
+                uint[] dims = arr.GetDimensions();
                 for (int n = 0; n < dims.Length; n++)
                 {
                     if (n > 0)
@@ -456,7 +456,7 @@ namespace Mono.Debugging.Win32
 				else {
 					mod = methodOwner.Class.Module;
 				}
-				var func = mod.GetFunctionFromToken (method.MetadataToken);
+				var func = mod.GetFunctionFromToken ((uint)method.MetadataToken);
 				var args = new CorApi.Portable.Value[argValues.Length];
 				for (int n = 0; n < args.Length; n++)
 					args[n] = argValues[n].Val;
@@ -826,7 +826,7 @@ namespace Mono.Debugging.Win32
 			if (ctor == null)
 				return null;
 
-			CorApi.Portable.Function func = type.Class.Module.GetFunctionFromToken (ctor.MetadataToken);
+			CorApi.Portable.Function func = type.Class.Module.GetFunctionFromToken ((uint)ctor.MetadataToken);
 			return cctx.RuntimeInvoke (func, type.TypeParameters, null, vargs);
 		}
 
@@ -928,7 +928,7 @@ namespace Mono.Debugging.Win32
 				ptype = bval.ExactType.GetTypeInfo (((CorEvaluationContext)ctx).Session);
 				foreach (FieldInfo field in ptype.GetFields (BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)) {
 					if (field.Name == "m_value") {
-						var val = bval.GetFieldValue (bval.ExactType.Class, field.MetadataToken);
+						var val = bval.GetFieldValue (bval.ExactType.Class, (uint)field.MetadataToken);
 						val = GetRealObject (ctx, val);
 						return val;
 					}
@@ -1720,11 +1720,11 @@ namespace Mono.Debugging.Win32
 			var cType = (CorApi.Portable.Type)type;
 			var wctx = (CorEvaluationContext)ctx;
 			var mod = cType.Class.Module;
-			int token = cType.Class.Token;
+			uint token = cType.Class.Token;
 			var module = wctx.Session.GetMetadataForModule (mod);
 			foreach (var t in module.DefinedTypes) {
 				if (((MetadataType)t).DeclaringType != null && ((MetadataType)t).DeclaringType.MetadataToken == token) {
-					var cls = mod.GetClassFromToken (((MetadataType)t).MetadataToken);
+					var cls = mod.GetClassFromToken ((uint)((MetadataType)t).MetadataToken);
 					var returnType = cls.GetParameterizedType (CorApi.Portable.CorElementType.ElementTypeClass, new CorApi.Portable.Type[0]);
 					if (!IsGeneratedType (returnType.GetTypeInfo (wctx.Session))) {
 						yield return returnType;

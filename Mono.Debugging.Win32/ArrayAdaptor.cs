@@ -47,7 +47,13 @@ namespace Mono.Debugging.Win32
 		{
 			var array = valRef.Val;
 			if (array != null && array.HasBaseIndiciesP) {
-				return array.GetBaseIndicies ();
+				var baseIndices = array.GetBaseIndicies();
+				var lowerBounds = new int[baseIndices.Length];
+				for (int i = 0; i < baseIndices.Length; i++)
+				{
+					lowerBounds[i] = (int)baseIndices[i];
+				}
+				return lowerBounds;
 			} else {
 				return new int[GetDimensions ().Length];
 			}
@@ -56,14 +62,33 @@ namespace Mono.Debugging.Win32
 		public int[] GetDimensions ()
 		{
 			var array = valRef.Val;
-			return array != null ? array.GetDimensions () : new int[0];
+			if (array == null)
+			{
+				return new int[0];
+			}
+			var dim = array.GetDimensions();
+			var dimensions = new int[dim.Length];
+			for (int i = 0; i < dim.Length; i++)
+			{
+				dimensions[i] = (int)dim[i];
+			}
+			return dimensions;
 		}
 		
 		public object GetElement (int[] indices)
 		{
 			return new CorValRef (delegate {
 				var array = valRef.Val;
-				return array != null ? array.GetElement (indices) : null;
+				if (array == null)
+				{
+					return null;
+				}
+				var dimensions = new uint[indices.Length];
+				for (int i = 0; i < indices.Length; i++)
+				{
+					dimensions[i] = (uint)indices[i];
+				}
+				return array.GetElement(dimensions);
 			});
 		}
 

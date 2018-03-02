@@ -36,7 +36,7 @@ namespace Mono.Debugging.Win32
 		bool evaluating;
 		bool autoStepInto;
 		bool stepInsideDebuggerHidden=false;
-		protected int processId;
+		protected uint processId;
 		protected bool attaching = false;
 
 		static int evaluationTimestamp;
@@ -44,11 +44,11 @@ namespace Mono.Debugging.Win32
 		readonly SymbolBinder symbolBinder = new SymbolBinder ();
 		readonly object appDomainsLock = new object ();
 
-		Dictionary<int, AppDomainInfo> appDomains = new Dictionary<int, AppDomainInfo> ();
-		Dictionary<int, ProcessInfo> processes = new Dictionary<int, ProcessInfo> ();
-		Dictionary<int, ThreadInfo> threads = new Dictionary<int,ThreadInfo> ();
+		Dictionary<uint, AppDomainInfo> appDomains = new Dictionary<uint, AppDomainInfo> ();
+		Dictionary<uint, ProcessInfo> processes = new Dictionary<uint, ProcessInfo> ();
+		Dictionary<uint, ThreadInfo> threads = new Dictionary<uint,ThreadInfo> ();
 		readonly Dictionary<CorApi.Portable.Breakpoint, BreakEventInfo> breakpoints = new Dictionary<CorApi.Portable.Breakpoint, BreakEventInfo> ();
-		readonly Dictionary<long, CorApi.Portable.HandleValue> handles = new Dictionary<long, CorApi.Portable.HandleValue>();
+		readonly Dictionary<ulong, CorApi.Portable.HandleValue> handles = new Dictionary<ulong, CorApi.Portable.HandleValue>();
 
 		readonly BlockingCollection<Action> helperOperationsQueue = new BlockingCollection<Action>(new ConcurrentQueue<Action>());
 		readonly CancellationTokenSource helperOperationsCancellationTokenSource = new CancellationTokenSource ();
@@ -915,7 +915,7 @@ namespace Mono.Debugging.Win32
 					throw new InvalidOperationException(string.Format("Process {0} doesn't have .NET loaded runtimes", procId));
 				dbg = new CorDebugger(version.Last());
 				var lprocess = dbg.DebugActiveProcess((int)procId, false);
-				lprocess.Continue(new SharpDX.Mathematics.Interop.RawBool(false));
+				lprocess.Continue(new SharpGen.Runtime.Win32.RawBool(false));
 
 				throw new NotImplementedException();
 				//SetupProcess(process);
@@ -940,7 +940,7 @@ namespace Mono.Debugging.Win32
 					version = versions.Last ();
 				dbg = new CorDebugger(version);
 				var lprocess = dbg.DebugActiveProcess((int)processInfo.Id, false);
-				lprocess.Continue(new SharpDX.Mathematics.Interop.RawBool(false));
+				lprocess.Continue(new SharpGen.Runtime.Win32.RawBool(false));
 
 				throw new NotImplementedException();
 				//SetupProcess(process);
@@ -1238,10 +1238,10 @@ namespace Mono.Debugging.Win32
 						}
 
 						foreach (var docInfo in docInfos) {
-							CorApi.Portable.Function func = docInfo.ModuleInfo.Module.GetFunctionFromToken (bestMethod.Token.GetToken ());
+							CorApi.Portable.Function func = docInfo.ModuleInfo.Module.GetFunctionFromToken ((uint)bestMethod.Token.GetToken ());
 
 							try {
-								CorApi.Portable.FunctionBreakpoint corBp = func.ILCode.CreateBreakpoint (bestSp.Offset);
+								CorApi.Portable.FunctionBreakpoint corBp = func.ILCode.CreateBreakpoint ((uint)bestSp.Offset);
 								breakpoints[corBp] = binfo;
 
 								if (binfo.Handle == null)
@@ -1341,7 +1341,7 @@ namespace Mono.Debugging.Win32
 						RawContinue (into);
 						return;
 					}
-					ISymbolMethod met = reader.GetMethod (new SymbolToken (frame.Function.Token));
+					ISymbolMethod met = reader.GetMethod (new SymbolToken ((int)frame.Function.Token));
 					if (met == null) {
 						RawContinue (into);
 						return;
@@ -1439,7 +1439,7 @@ namespace Mono.Debugging.Win32
 				stepper.Deactivate ();
 			}
 			stepper = activeThread.CreateStepper ();
-			stepper.UnmappedStopMask = CorApi.Portable.CorDebugUnmappedStop.StopNone;
+			stepper.SetUnmappedStopMask(CorApi.Portable.CorDebugUnmappedStop.StopNone);
 			stepper.SetJmcStatus (true);
 		}
 
@@ -1683,7 +1683,7 @@ namespace Mono.Debugging.Win32
 			}
 		}
 
-		public CorApi.Portable.Thread GetThread (int id)
+		public CorApi.Portable.Thread GetThread (ulong id)
 		{
 			try {
 				WaitUntilStopped ();
@@ -1715,7 +1715,7 @@ namespace Mono.Debugging.Win32
 		            { 
 		                if (fi.Name == "m_Name")
 						{
-		                        var fieldValue = val.GetFieldValue(val.Class, fi.MetadataToken).CastToReferenceValue(); 
+		                        var fieldValue = val.GetFieldValue(val.Class, (uint)fi.MetadataToken).CastToReferenceValue(); 
 							
 								if (fieldValue.IsNull)
 									return string.Empty;
@@ -1811,7 +1811,7 @@ namespace Mono.Debugging.Win32
 			if (!CanSetNextStatement)
 				throw new NotSupportedException ();
 			MtaThread.Run (delegate {
-				var thread = GetThread ((int)threadId);
+				var thread = GetThread ((ulong)threadId);
 				if (thread == null)
 					throw new ArgumentException ("Unknown thread.");
 
@@ -1828,12 +1828,12 @@ namespace Mono.Debugging.Win32
 				int firstSpInLine = -1;
 				foreach (SequencePoint sp in met.GetSequencePoints ()) {
 					if (sp.IsInside (fileName, line, column)) {
-						offset = sp.Offset;
+						offset = (int)sp.Offset;
 						break;
 					} else if (firstSpInLine == -1
 					           && sp.StartLine == line
 					           && sp.Document.URL.Equals (fileName, StringComparison.OrdinalIgnoreCase)) {
-						firstSpInLine = sp.Offset;
+						firstSpInLine = (int)sp.Offset;
 					}
 				}
 				if (offset == -1) {//No exact match? Use first match in that line
@@ -1859,7 +1859,7 @@ namespace Mono.Debugging.Win32
 		public int EndLine;
 		public int StartColumn;
 		public int EndColumn;
-		public int Offset;
+		public uint Offset;
 		public bool IsSpecial;
 		public ISymbolDocument Document;
 
@@ -1895,7 +1895,7 @@ namespace Mono.Debugging.Win32
 				sp.EndLine = endLines[n];
 				sp.StartColumn = columns[n];
 				sp.EndColumn = endColumns[n];
-				sp.Offset = offsets[n];
+				sp.Offset = (uint)offsets[n];
 				yield return sp;
 			}
 		}
@@ -1944,7 +1944,7 @@ namespace Mono.Debugging.Win32
 			ISymbolReader reader = session.GetReaderForModule (func.Module);
 			if (reader == null)
 				return null;
-			return reader.GetMethod (new SymbolToken (func.Token));
+			return reader.GetMethod (new SymbolToken ((int)func.Token));
 		}
 
 		public static MethodInfo GetMethodInfo (this CorApi.Portable.Function func, CorDebuggerSession session)

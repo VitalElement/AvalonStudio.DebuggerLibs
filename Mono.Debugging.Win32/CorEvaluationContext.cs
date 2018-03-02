@@ -14,7 +14,7 @@ namespace Mono.Debugging.Win32
 		int evalTimestamp;
 		readonly CorBacktrace backtrace;
 		CorApi.Portable.Thread thread;
-		int threadId;
+		ulong threadId;
 
 		public CorDebuggerSession Session { get; set; }
 

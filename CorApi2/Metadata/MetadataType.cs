@@ -16,6 +16,7 @@ using Microsoft.Samples.Debugging.CorDebug;
 using Microsoft.Samples.Debugging.CorMetadata.NativeApi; 
 using Microsoft.Samples.Debugging.CorDebug.NativeApi;
 using Microsoft.Samples.Debugging.Extensions;
+using SharpGen.Runtime;
 
 namespace Microsoft.Samples.Debugging.CorMetadata
 {
@@ -38,7 +39,7 @@ namespace Microsoft.Samples.Debugging.CorMetadata
 
     public sealed class MetadataType : Type
     {
-        internal MetadataType(CorApi.Portable.IMetaDataImport importer,int classToken)
+        internal MetadataType(CorApi.Portable.IMetaDataImport importer, uint classToken)
         {
             Debug.Assert(importer!=null);
             m_importer = importer;
@@ -56,9 +57,9 @@ namespace Microsoft.Samples.Debugging.CorMetadata
                 {
                     string name = string.Empty;
                     // get info about the type
-                    int size;
-                    int ptkExtends;
-                    int pdwTypeDefFlags;
+                    uint size;
+                    uint ptkExtends;
+                    uint pdwTypeDefFlags;
                     importer.GetTypeDefProps(classToken,
                                              IntPtr.Zero,
                                              0,
@@ -68,7 +69,7 @@ namespace Microsoft.Samples.Debugging.CorMetadata
                                              );
                     if (size == 0)
                     {
-                        int ptkResScope = 0;
+                        uint ptkResScope = 0;
                         importer.GetTypeRefProps(classToken,
                             out ptkResScope,
                             IntPtr.Zero,
@@ -77,7 +78,7 @@ namespace Microsoft.Samples.Debugging.CorMetadata
                         );
 
                         
-                        var szTypedef = stackalloc char[size];
+                        var szTypedef = stackalloc char[(int)size];
                         importer.GetTypeRefProps(classToken,
                             out ptkResScope,
                             (IntPtr)  szTypedef,
@@ -85,11 +86,11 @@ namespace Microsoft.Samples.Debugging.CorMetadata
                             out size
                         );
 
-                        name = new string(szTypedef, 0, size - 1);
+                        name = new string(szTypedef, 0, (int)size - 1);
                     }
                     else
                     {
-                        var szTypedef = stackalloc char[size];
+                        var szTypedef = stackalloc char[(int)size];
                         importer.GetTypeDefProps(classToken,
                             (IntPtr)szTypedef,
                             size,
@@ -98,7 +99,7 @@ namespace Microsoft.Samples.Debugging.CorMetadata
                             out ptkExtends
                         );
 
-                        name = new string(szTypedef, 0, size - 1);
+                        name = new string(szTypedef, 0, (int)size - 1);
                     }
                     m_name = GetNestedClassPrefix(importer, classToken, (TypeAttributes)pdwTypeDefFlags) + name;
 
@@ -112,7 +113,7 @@ namespace Microsoft.Samples.Debugging.CorMetadata
                         m_enumUnderlyingType = GetEnumUnderlyingType(importer, classToken);
 
                         // Check for flags enum by looking for FlagsAttribute
-                        int sigSize = 0;
+                        uint sigSize = 0;
                         ppvSig = IntPtr.Zero;
 
                         try
@@ -120,7 +121,7 @@ namespace Microsoft.Samples.Debugging.CorMetadata
                             importer.GetCustomAttributeByName(classToken, "System.FlagsAttribute", out ppvSig, out sigSize);
                             m_isFlagsEnum = true;
                         }
-                        catch(SharpDX.SharpDXException e)
+                        catch(SharpGenException e)
                         {
                             m_isFlagsEnum = false;
                             throw new COMException("Exception looking for flags attribute", e.HResult);
@@ -147,16 +148,16 @@ namespace Microsoft.Samples.Debugging.CorMetadata
 			}
 		}
 
-        private static string GetTypeName(CorApi.Portable.IMetaDataImport importer, int tk)
+        private static string GetTypeName(CorApi.Portable.IMetaDataImport importer, uint tk)
         {
             unsafe
             {
                 string result = string.Empty;
                 // Get the base type name
                 MetadataToken token = new MetadataToken(tk);
-                int size;
-                int pdwTypeDefFlags;
-                int ptkExtends;
+                uint size;
+                uint pdwTypeDefFlags;
+                uint ptkExtends;
 
                 if (token.IsOfType(MetadataTokenType.TypeDef))
                 {
@@ -168,7 +169,7 @@ namespace Microsoft.Samples.Debugging.CorMetadata
                                         out ptkExtends
                                         );
 
-                    var sbBaseName = stackalloc char[size];
+                    var sbBaseName = stackalloc char[(int)size];
                     importer.GetTypeDefProps(token,
                                         (IntPtr)sbBaseName,
                                         size,
@@ -177,7 +178,7 @@ namespace Microsoft.Samples.Debugging.CorMetadata
                                         out ptkExtends
                                         );
 
-                    result = new string(sbBaseName, 0, size - 1);
+                    result = new string(sbBaseName, 0, (int)size - 1);
                 }
                 else if (token.IsOfType(MetadataTokenType.TypeRef))
                 {
@@ -185,14 +186,14 @@ namespace Microsoft.Samples.Debugging.CorMetadata
                     // But that token does not exist so we can't get a name for it
                     if (token.Index != 0)
                     {
-                        int resolutionScope;
+                        uint resolutionScope;
                         importer.GetTypeRefProps(token,
                                             out resolutionScope,
                                             IntPtr.Zero,
                                             0,
                                             out size
                                             );
-                        var sbBaseName = stackalloc char[size];
+                        var sbBaseName = stackalloc char[(int)size];
                         importer.GetTypeRefProps(token,
                                             out resolutionScope,
                                             (IntPtr)sbBaseName,
@@ -200,7 +201,7 @@ namespace Microsoft.Samples.Debugging.CorMetadata
                                             out size
                                             );
 
-                        result = new string(sbBaseName, 0, size - 1);
+                        result = new string(sbBaseName, 0, (int)size - 1);
                     }
                 }
                 // Note the base type can also be a TypeSpec token, but that only happens
@@ -211,19 +212,19 @@ namespace Microsoft.Samples.Debugging.CorMetadata
             }
         }
 
-        private static CorApi.Portable.CorElementType GetEnumUnderlyingType(CorApi.Portable.IMetaDataImport importer, int tk)
+        private static CorApi.Portable.CorElementType GetEnumUnderlyingType(CorApi.Portable.IMetaDataImport importer, uint tk)
         {
                 IntPtr hEnum = IntPtr.Zero;
-                int[] mdFieldDef = new int[1];
-                int numFieldDefs;
-                int fieldAttributes;
-                int nameSize;
-                int cPlusTypeFlab;
+                uint[] mdFieldDef = new uint[1];
+                uint numFieldDefs;
+                uint fieldAttributes;
+                uint nameSize;
+                uint cPlusTypeFlab;
                 IntPtr ppValue;
-                int pcchValue;
+                uint pcchValue;
                 IntPtr ppvSig;
-                int size;
-                int classToken;
+                uint size;
+                uint classToken;
                 
                 importer.EnumFields(out hEnum, tk, mdFieldDef, 1, out numFieldDefs);
                 while (numFieldDefs != 0)
@@ -256,7 +257,7 @@ namespace Microsoft.Samples.Debugging.CorMetadata
         {
             get 
             {
-                return m_typeToken;
+                return (int)m_typeToken;
             }
         }
 
@@ -296,9 +297,9 @@ namespace Microsoft.Samples.Debugging.CorMetadata
 					throw new NotImplementedException ();
 
 				var token = new MetadataToken(m_typeToken);
-				int size;
-				int pdwTypeDefFlags;
-				int ptkExtends;
+				uint size;
+				uint pdwTypeDefFlags;
+				uint ptkExtends;
 
 				m_importer.GetTypeDefProps (token,
 				                            IntPtr.Zero,
@@ -502,10 +503,10 @@ namespace Microsoft.Samples.Debugging.CorMetadata
 			var al = new ArrayList ();
 			var hEnum = new IntPtr ();
 
-			int[] methodToken = new int[1];
+			uint[] methodToken = new uint[1];
 			try {
 				while (true) {
-					int size;
+					uint size;
 					m_importer.EnumProperties (out hEnum, m_typeToken, methodToken, 1, out size);
 					if (size == 0)
 						break;
@@ -562,17 +563,17 @@ namespace Microsoft.Samples.Debugging.CorMetadata
 			var al = new ArrayList();
 			var hEnum = new IntPtr();
 
-			int[] impl = new int[1];
+			uint[] impl = new uint[1];
 			try 
 			{
 				while(true)
 				{
-					int size;
+					uint size;
 					m_importer.EnumInterfaceImpls (out hEnum, m_typeToken, impl,1,out size);
 					if(size==0)
 						break;
-					int classTk;
-					int intfTk;
+					uint classTk;
+					uint intfTk;
 					m_importer.GetInterfaceImplProps (impl[0], out classTk, out intfTk);
 					al.Add (new MetadataType (m_importer, intfTk));
 				}
@@ -598,12 +599,12 @@ namespace Microsoft.Samples.Debugging.CorMetadata
             var al = new ArrayList();
             var hEnum = new IntPtr();
 
-            int[] fieldToken = new int[1];
+            uint[] fieldToken = new uint[1];
             try 
             {
                 while(true)
                 {
-                    int size;
+                    uint size;
                     m_importer.EnumFields(out hEnum, m_typeToken,fieldToken,1,out size);
                     if(size==0)
                         break;
@@ -625,12 +626,12 @@ namespace Microsoft.Samples.Debugging.CorMetadata
             ArrayList al = new ArrayList();
             IntPtr hEnum = new IntPtr();
 
-            int[] methodToken = new int[1];
+            uint[] methodToken = new uint[1];
             try 
             {
                 while(true)
                 {
-                    int size;
+                    uint size;
                     m_importer.EnumMethods(out hEnum,m_typeToken, methodToken,1,out size);
                     if(size==0)
                         break;
@@ -739,12 +740,12 @@ namespace Microsoft.Samples.Debugging.CorMetadata
         }
 
         // returns "" for normal classes, returns prefix for nested classes
-        private string GetNestedClassPrefix(CorApi.Portable.IMetaDataImport importer, int classToken, TypeAttributes attribs)
+        private string GetNestedClassPrefix(CorApi.Portable.IMetaDataImport importer, uint classToken, TypeAttributes attribs)
         {
             if( (attribs & TypeAttributes.VisibilityMask) > TypeAttributes.Public )
             {
                 // it is a nested class
-                int enclosingClass;
+                uint enclosingClass;
                 importer.GetNestedClassProps(classToken, out enclosingClass);
 				// [Xamarin] Expression evaluator.
 				m_declaringType = new MetadataType (importer, enclosingClass);
@@ -759,7 +760,7 @@ namespace Microsoft.Samples.Debugging.CorMetadata
         // member variables
         private string m_name;
         private CorApi.Portable.IMetaDataImport m_importer;
-        private int m_typeToken;
+        private uint m_typeToken;
         private bool m_isEnum;
         private bool m_isFlagsEnum;
         private CorApi.Portable.CorElementType m_enumUnderlyingType;
@@ -830,8 +831,8 @@ namespace Microsoft.Samples.Debugging.CorMetadata
         //
         public bool MoveNext ()
         {
-            int[] token = new int[1];
-            int c;
+            uint[] token = new uint[1];
+            uint c;
             
             m_corMeta.m_importer.EnumTypeDefs(out m_enum, token,1, out c);
             if (c==1) // 1 new element

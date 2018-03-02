@@ -16,6 +16,7 @@ using Microsoft.Samples.Debugging.CorMetadata.NativeApi;
 using Microsoft.Samples.Debugging.CorDebug.NativeApi;
 using Microsoft.Samples.Debugging.Extensions;
 using System.Collections.Generic;
+using SharpGen.Runtime;
 
 namespace Microsoft.Samples.Debugging.CorMetadata
 {
@@ -23,10 +24,10 @@ namespace Microsoft.Samples.Debugging.CorMetadata
     {
         public CorMetadataImport(CorApi.Portable.Module managedModule)
         {
-            SharpDX.ComObject mdi = null;
+            IUnknown mdi = null;
             managedModule.GetMetaDataInterface (typeof(CorApi.Portable.IMetaDataImport).GUID, out mdi);
 
-            m_importer = mdi.QueryInterfaceOrNull<CorApi.Portable.IMetaDataImport>();
+            m_importer = ((ComObject)mdi).QueryInterfaceOrNull<CorApi.Portable.IMetaDataImport>();
             Debug.Assert(m_importer != null);
         }
 
@@ -37,21 +38,21 @@ namespace Microsoft.Samples.Debugging.CorMetadata
         }
 
         // methods
-        public MethodInfo GetMethodInfo(int methodToken)
+        public MethodInfo GetMethodInfo(uint methodToken)
         {
             return new MetadataMethodInfo(m_importer,methodToken, Instantiation.Empty);
         }
 
-        public Type GetType(int typeToken)
+        public Type GetType(uint typeToken)
         {
-            return new MetadataType(m_importer,typeToken);
+            return new MetadataType(m_importer, typeToken);
         }
 
 
         // Get number of generic parameters on a given type.
         // Eg, for 'Foo<t, u>', returns 2.
         // for 'Foo', returns 0.
-        public int CountGenericParams(int typeToken)
+        public uint CountGenericParams(int typeToken)
         {
             
             // This may fail in pre V2.0 debuggees.
@@ -66,7 +67,7 @@ namespace Microsoft.Samples.Debugging.CorMetadata
             int dummy;            
             uint dummy2;
             IntPtr hEnum = IntPtr.Zero;
-            int count;
+            uint count;
             importer2.EnumGenericParams(ref hEnum, typeToken, out dummy, 1, out dummy2);
             try
             {
@@ -84,7 +85,7 @@ namespace Microsoft.Samples.Debugging.CorMetadata
         // Returns null if filename is not available.
         public string GetScopeFilename()
         {
-            int size;
+            uint size;
 
             try
             {
@@ -93,10 +94,10 @@ namespace Microsoft.Samples.Debugging.CorMetadata
                     Guid mvid;
                     m_importer.GetScopeProps(IntPtr.Zero, 0, out size, out mvid);
 
-                    var sb = stackalloc char[size];
+                    var sb = stackalloc char[(int)size];
                     m_importer.GetScopeProps((IntPtr)sb, size, out size, out mvid);
 
-                    return new string(sb, 0, size - 1);
+                    return new string(sb, 0, (int)size - 1);
                 }
             }
             catch
@@ -105,29 +106,29 @@ namespace Microsoft.Samples.Debugging.CorMetadata
             }
         }
 
-        public string GetUserString(int token)
+        public string GetUserString(uint token)
         {
-            int size;
+            uint size;
             m_importer.GetUserString(token, IntPtr.Zero ,0,out size);
 
             unsafe
             {
-                var sb = stackalloc char[size];
+                var sb = stackalloc char[(int)size];
 
                 m_importer.GetUserString(token, (IntPtr)sb, size, out size);
 
-                return new string(sb, 0, size - 1);
+                return new string(sb, 0, (int)size - 1);
             }
         }
 
-        public const int TokenNotFound = -1;
-        public const int TokenGlobalNamespace = 0;
+        public const uint TokenNotFound = uint.MaxValue;
+        public const uint TokenGlobalNamespace = 0;
         
         // returns a type token from name
         // when the function fails, we return token TokenNotFound value.
-        public int GetTypeTokenFromName(string name)
+        public uint GetTypeTokenFromName(string name)
         {
-            int token = CorMetadataImport.TokenNotFound;
+            uint token = CorMetadataImport.TokenNotFound;
             if( name.Length==0 )
                 // this is special global type (we'll return token 0)
                 token = CorMetadataImport.TokenGlobalNamespace;
@@ -145,7 +146,7 @@ namespace Microsoft.Samples.Debugging.CorMetadata
                         int i = name.LastIndexOfAny(TypeDelimeters);
                         if(i>0)
                         {
-                            int parentToken = GetTypeTokenFromName(name.Substring(0,i));
+                            uint parentToken = GetTypeTokenFromName(name.Substring(0,i));
                             if( parentToken!=CorMetadataImport.TokenNotFound )
                             {
                                 try 
@@ -168,45 +169,45 @@ namespace Microsoft.Samples.Debugging.CorMetadata
             return token;
         }
 
-        public string GetTypeNameFromRef(int token)
+        public string GetTypeNameFromRef(uint token)
         {
-            int resScope,size;
+            uint resScope,size;
             m_importer.GetTypeRefProps(token,out resScope,IntPtr.Zero,0,out size);
             unsafe
             {
-                var sb = stackalloc char[size];
+                var sb = stackalloc char[(int)size];
 
                 m_importer.GetTypeRefProps(token, out resScope, (IntPtr)sb, size, out size);
-                return new string(sb, 0, size - 1);
+                return new string(sb, 0, (int)size - 1);
             }
         }
 
-        public string GetTypeNameFromDef(int token,out int extendsToken)
+        public string GetTypeNameFromDef(uint token,out uint extendsToken)
         {
-            int size;
-            int pdwTypeDefFlags;
+            uint size;
+            uint pdwTypeDefFlags;
             m_importer.GetTypeDefProps(token, IntPtr.Zero, 0, out size,
                                        out pdwTypeDefFlags, out extendsToken);
 
             unsafe
             {
-                var sb = stackalloc char[size];
+                var sb = stackalloc char[(int)size];
                 m_importer.GetTypeDefProps(token, (IntPtr)sb, size, out size,
                                            out pdwTypeDefFlags, out extendsToken);
-                return new string(sb, 0, size - 1);
+                return new string(sb, 0, (int)size - 1);
             }
         }
 
 
-        public string GetMemberRefName(int token)
+        public string GetMemberRefName(uint token)
         {
             if(!m_importer.IsValidToken(token))
                 throw new ArgumentException();
 
-            int size;
-            int classToken;
+            uint size;
+            uint classToken;
             IntPtr ppvSigBlob;
-            int pbSig;
+            uint pbSig;
 
             m_importer.GetMemberRefProps(token,
                                          out classToken,
@@ -219,7 +220,7 @@ namespace Microsoft.Samples.Debugging.CorMetadata
 
             unsafe
             {
-                var member = stackalloc char[size];
+                var member = stackalloc char[(int)size];
 
                 m_importer.GetMemberRefProps(token,
                                              out classToken,
@@ -242,12 +243,12 @@ namespace Microsoft.Samples.Debugging.CorMetadata
                         break;
                     case CorTokenType.mdtTypeDef:
                         {
-                            int parentToken;
+                            uint parentToken;
                             className = GetTypeNameFromDef(classToken, out parentToken);
                             break;
                         }
                 }
-                return className + "." + new string(member, 0, size - 1);
+                return className + "." + new string(member, 0, (int)size - 1);
             }
         }
 
@@ -260,7 +261,7 @@ namespace Microsoft.Samples.Debugging.CorMetadata
             }
         }
 
-        public SharpDX.ComObject RawCOMObject
+        public SharpGen.Runtime.ComObject RawCOMObject
         {
             get 
             {
@@ -290,7 +291,7 @@ namespace Microsoft.Samples.Debugging.CorMetadata
 
     public sealed class MetadataMethodInfo : MethodInfo
     {
-        internal MetadataMethodInfo(CorApi.Portable.IMetaDataImport importer, int methodToken, Instantiation instantiation)
+        internal MetadataMethodInfo(CorApi.Portable.IMetaDataImport importer, uint methodToken, Instantiation instantiation)
         {
             unsafe
             {
@@ -300,11 +301,11 @@ namespace Microsoft.Samples.Debugging.CorMetadata
                 m_importer = importer;
                 m_methodToken = methodToken;
 
-                int size;
-                int pdwAttr;
+                uint size;
+                uint pdwAttr;
                 IntPtr ppvSigBlob;
-                int pulCodeRVA, pdwImplFlags;
-                int pcbSigBlob;
+                uint pulCodeRVA, pdwImplFlags;
+                uint pcbSigBlob;
 
                 m_importer.GetMethodProps(methodToken,
                                           out m_classToken,
@@ -319,7 +320,7 @@ namespace Microsoft.Samples.Debugging.CorMetadata
 
 
 
-                var szMethodName = stackalloc char[size];
+                var szMethodName = stackalloc char[(int)size];
 
                 
                 m_importer.GetMethodProps(methodToken,
@@ -336,7 +337,7 @@ namespace Microsoft.Samples.Debugging.CorMetadata
                 // [Xamarin] Expression evaluator.
                 CorCallingConvention callingConv;
                 MetadataHelperFunctionsExtensions.ReadMethodSignature(importer, instantiation, ref ppvSigBlob, out callingConv, out m_retType, out m_argTypes, out m_sentinelIndex);
-                m_name = new string(szMethodName, 0, size - 1);
+                m_name = new string(szMethodName, 0, (int)size - 1);
                 m_methodAttributes = (MethodAttributes)pdwAttr;
             }
         }
@@ -451,10 +452,10 @@ namespace Microsoft.Samples.Debugging.CorMetadata
             {
                 while(true) 
                 {
-                    int count;
-                    int[] paramToken = new int[1];
+                    uint count;
+                    uint[] paramToken = new uint[1];
                     m_importer.EnumParams(out hEnum,
-                                          m_methodToken, paramToken,1,out count);
+                                          m_methodToken, paramToken, 1, out count);
                     if(count!=1)
                         break;
                     // this fixes IndexOutOfRange exception. Sometimes EnumParams gives you a param with position that is out of m_argTypes.Count
@@ -479,7 +480,7 @@ namespace Microsoft.Samples.Debugging.CorMetadata
         {
             get 
             {
-                return m_methodToken;
+                return (int)m_methodToken;
             }
         }
 
@@ -498,8 +499,8 @@ namespace Microsoft.Samples.Debugging.CorMetadata
 
         private CorApi.Portable.IMetaDataImport m_importer;
         private string m_name;
-        private int m_classToken;
-        private int m_methodToken;
+        private uint m_classToken;
+        private uint m_methodToken;
         private MethodAttributes m_methodAttributes;
         // [Xamarin] Expression evaluator.
         private List<Type> m_argTypes;
@@ -564,7 +565,7 @@ namespace Microsoft.Samples.Debugging.CorMetadata
     
     public struct MetadataToken
     {
-        public MetadataToken(int value)
+        public MetadataToken(uint value)
         {
             this.value = value;
         }
@@ -573,7 +574,7 @@ namespace Microsoft.Samples.Debugging.CorMetadata
         {
             get
             {
-                return value;
+                return (int)value;
             }
         }
 
@@ -589,11 +590,13 @@ namespace Microsoft.Samples.Debugging.CorMetadata
         {
             get
             {
-                return value & 0x00FFFFFF;
+                return Value & 0x00FFFFFF;
             }
         }
-        
-        public static implicit operator int(MetadataToken token) { return token.value; }
+
+        public static implicit operator uint(MetadataToken token) { return token.value; }
+
+        public static implicit operator int(MetadataToken token) { return token.Value; }
         public static bool operator==(MetadataToken v1, MetadataToken v2) { return (v1.value == v2.value);}
         public static bool operator!=(MetadataToken v1, MetadataToken v2) { return !(v1 == v2);}
 
@@ -622,7 +625,7 @@ namespace Microsoft.Samples.Debugging.CorMetadata
 
         public override int GetHashCode() { return value.GetHashCode();}
 
-        private int value;
+        private uint value;
     }
 
     static class MetadataHelperFunctions
@@ -824,7 +827,7 @@ namespace Microsoft.Samples.Debugging.CorMetadata
         }*/
         
         static internal string[] GetGenericArgumentNames(CorApi.Portable.IMetaDataImport importer,
-                                                int typeOrMethodToken) 
+                                                uint typeOrMethodToken) 
         {
             CorApi.Portable.IMetaDataImport2 importer2 = importer.QueryInterfaceOrNull< CorApi.Portable.IMetaDataImport2>();
             if(importer2 == null)
@@ -838,13 +841,13 @@ namespace Microsoft.Samples.Debugging.CorMetadata
             try{
                 int i=0;
                 do{
-                    int nOut;
-                    int[] genTypeToken = new int[1];
+                    uint nOut;
+                    uint[] genTypeToken = new uint[1];
                     importer2.EnumGenericParams(out hEnum, typeOrMethodToken, 
                                                 genTypeToken, 1, out nOut);
                     if( genargs==null )
                     {
-                        int count;
+                        uint count;
                         importer.CountEnum(hEnum, out count);
                         genargs = new string[count];
                     }
@@ -854,9 +857,9 @@ namespace Microsoft.Samples.Debugging.CorMetadata
                     Debug.Assert( nOut==1 );
                     if( nOut==1 )
                     {
-                        int genIndex;
-                        int genFlags, ptkOwner, ptkKind;
-                        int genArgNameSize;
+                        uint genIndex;
+                        uint genFlags, ptkOwner, ptkKind;
+                        uint genArgNameSize;
 
                         throw new NotImplementedException("GenArgNameSize should be ulong");
 
@@ -871,7 +874,7 @@ namespace Microsoft.Samples.Debugging.CorMetadata
 
                         unsafe
                         {
-                            var genArgName = stackalloc char[genArgNameSize];
+                            var genArgName = stackalloc char[(int)genArgNameSize];
                             importer2.GetGenericParamProps(genTypeToken[0],
                                                            out genIndex,
                                                            out genFlags,
@@ -881,7 +884,7 @@ namespace Microsoft.Samples.Debugging.CorMetadata
                                                            genArgNameSize,
                                                            out genArgNameSize);
 
-                            genargs[i] = new string(genArgName, 0, genArgNameSize - 1);
+                            genargs[i] = new string(genArgName, 0, (int)genArgNameSize - 1);
                         }
                     }
                     ++i;

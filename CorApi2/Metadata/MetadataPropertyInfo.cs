@@ -14,20 +14,20 @@ namespace Microsoft.Samples.Debugging.CorMetadata
 	public class MetadataPropertyInfo: PropertyInfo
 	{
 		private CorApi.Portable.IMetaDataImport m_importer;
-		private int m_propertyToken;
+		private uint m_propertyToken;
 		private MetadataType m_declaringType;
 		private object[] m_customAttributes;
 
 		private string m_name;
 		private PropertyAttributes m_propAttributes;
 
-		int m_pmdSetter;
-		int m_pmdGetter;
+		uint m_pmdSetter;
+		uint m_pmdGetter;
 
 		MetadataMethodInfo m_setter;
 		MetadataMethodInfo m_getter;
 
-		internal MetadataPropertyInfo (CorApi.Portable.IMetaDataImport importer, int propertyToken, MetadataType declaringType)
+		internal MetadataPropertyInfo (CorApi.Portable.IMetaDataImport importer, uint propertyToken, MetadataType declaringType)
 		{
             unsafe
             {
@@ -35,16 +35,16 @@ namespace Microsoft.Samples.Debugging.CorMetadata
                 m_propertyToken = propertyToken;
                 m_declaringType = declaringType;
 
-                int mdTypeDef;
-                int pchProperty;
-                int pdwPropFlags;
+                uint mdTypeDef;
+                uint pchProperty;
+                uint pdwPropFlags;
                 IntPtr ppvSig;
-                int pbSig;
-                int pdwCPlusTypeFlag;
+                uint pbSig;
+                uint pdwCPlusTypeFlag;
                 IntPtr ppDefaultValue;
-                int pcchDefaultValue;
-                int[] rmdOtherMethod = new int[0];
-                int pcOtherMethod;
+                uint pcchDefaultValue;
+                uint[] rmdOtherMethod = new uint[0];
+                uint pcOtherMethod;
 
                 m_importer.GetPropertyProps(
                     m_propertyToken,
@@ -64,7 +64,7 @@ namespace Microsoft.Samples.Debugging.CorMetadata
                     0,
                     out pcOtherMethod);
 
-                var szProperty = stackalloc char[pchProperty];
+                var szProperty = stackalloc char[(int)pchProperty];
                 m_importer.GetPropertyProps(
                     m_propertyToken,
                     out mdTypeDef,
@@ -84,7 +84,7 @@ namespace Microsoft.Samples.Debugging.CorMetadata
                     out pcOtherMethod);
 
                 m_propAttributes = (PropertyAttributes)pdwPropFlags;
-                m_name = new string(szProperty, 0, pchProperty - 1);
+                m_name = new string(szProperty, 0, (int)pchProperty - 1);
             }
 
 			MetadataHelperFunctionsExtensions.GetCustomAttribute (importer, propertyToken, typeof (System.Diagnostics.DebuggerBrowsableAttribute));
