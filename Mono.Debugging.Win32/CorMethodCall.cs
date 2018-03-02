@@ -5,7 +5,7 @@ using Microsoft.Samples.Debugging.CorDebug;
 using Microsoft.Samples.Debugging.CorDebug.NativeApi;
 using Mono.Debugging.Client;
 using Mono.Debugging.Evaluation;
-using SharpDX;
+using SharpGen.Runtime;
 
 namespace Mono.Debugging.Win32
 {

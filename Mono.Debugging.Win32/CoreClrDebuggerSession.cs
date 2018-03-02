@@ -21,7 +21,7 @@ namespace Mono.Debugging.Win32
 				var workingDir = PrepareWorkingDirectory (startInfo);
 				var env = PrepareEnvironment (startInfo);
 				var cmd = PrepareCommandLine (startInfo);
-				int procId;
+				uint procId;
 				var iCorDebug = CoreClrShimUtil.CreateCorDebugForCommand (
 					dbgShimInterop, cmd, workingDir, env, RuntimeLoadTimeout, (debugger, processId) =>
 					{
@@ -59,7 +59,7 @@ namespace Mono.Debugging.Win32
 				var lprocess = dbg.DebugActiveProcess(procId, false);
 				//SetupProcess(process);
 				//process.Continue(false);
-				lprocess.Continue(new SharpDX.Mathematics.Interop.RawBool(false));
+				lprocess.Continue(new SharpGen.Runtime.Win32.RawBool(false));
 			});
 			OnStarted();
 		}

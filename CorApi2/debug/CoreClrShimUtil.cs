@@ -5,6 +5,7 @@ using System.Threading;
 using Microsoft.Samples.Debugging.CorDebug.NativeApi;
 using Microsoft.Samples.Debugging.Extensions;
 using PinvokeKit;
+using SharpGen.Runtime;
 
 namespace Microsoft.Samples.Debugging.CorDebug
 {
@@ -34,7 +35,7 @@ namespace Microsoft.Samples.Debugging.CorDebug
 
         [CLSCompliant(false)]
         public static CorApi.Portable.LocalDebugger CreateCorDebugForCommand(DbgShimInterop dbgShimInterop, string command, string workingDir,
-            IDictionary<string, string> env, TimeSpan runtimeLoadTimeout, Action<CorApi.Portable.LocalDebugger, int> onSetup, out int procId)
+            IDictionary<string, string> env, TimeSpan runtimeLoadTimeout, Action<CorApi.Portable.LocalDebugger, int> onSetup, out uint procId)
         {
             unsafe
             {
@@ -47,7 +48,7 @@ namespace Microsoft.Samples.Debugging.CorDebug
                     var hret = (HResults)dbgShimInterop.CreateProcessForLaunch(command, true, envPtr, workingDir, &processId, &resumeHandle);
                     if (hret != HResults.S_OK)
                         throw new COMException(string.Format("Failed call RegisterForRuntimeStartup: {0}", hret), (int)hret);
-                    procId = (int)processId;
+                    procId = processId;
                     return CreateCorDebugImpl(dbgShimInterop, processId, runtimeLoadTimeout, resumeHandle, onSetup);
                 }
                 finally
@@ -82,7 +83,7 @@ namespace Microsoft.Samples.Debugging.CorDebug
                         Marshal.ThrowExceptionForHR(hr);
                     }
                     
-                    corDebug = SharpDX.ComObject.FromPointer<CorApi.Portable.LocalDebugger>((IntPtr)pCordb);
+                    corDebug = SharpGen.Runtime.CppObject.FromPointer<CorApi.Portable.LocalDebugger>((IntPtr)pCordb);
 
                     onSetup(corDebug, (int)processId);
                     
@@ -126,7 +127,7 @@ namespace Microsoft.Samples.Debugging.CorDebug
                         Marshal.ThrowExceptionForHR (hr);
                     }
 
-                    var debugger = SharpDX.ComObject.FromPointer<CorApi.Portable.LocalDebugger>((IntPtr)pCordb);
+                    var debugger = CppObject.FromPointer<CorApi.Portable.LocalDebugger>((IntPtr)pCordb);
 
                     var unknown = Marshal.GetObjectForIUnknown ((IntPtr) pCordb);
                     corDebug = (ICorDebug) unknown;
