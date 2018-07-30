@@ -675,7 +675,7 @@ namespace Mono.Debugging.Win32
 			try {
 				currentModule.SetJMCStatus (justMyCode, null);
 			}
-			catch (COMException ex) {
+			catch (SharpGen.Runtime.SharpGenException ex) {
 				// somewhen exceptions is thrown
 				DebuggerLoggingService.LogMessage ("Exception during setting JMC: {0}", ex.Message);
 			}
