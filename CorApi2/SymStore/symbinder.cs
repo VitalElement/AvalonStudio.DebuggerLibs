@@ -124,7 +124,7 @@ namespace Microsoft.Samples.Debugging.CorSymbolStore
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                m_binder = (ISymUnmanagedBinder3)Activator.CreateInstance(Type.GetTypeFromCLSID(CLSID_CorSymBinder));
+               // m_binder = (ISymUnmanagedBinder3)Activator.CreateInstance(Type.GetTypeFromCLSID(CLSID_CorSymBinder));
             }
         }
         
