@@ -32,6 +32,7 @@ using System.Threading;
 using System.Collections.Generic;
 
 using Mono.Debugging.Backend;
+using Mono.Debugging.Evaluation;
 
 namespace Mono.Debugging.Client
 {
@@ -51,6 +52,7 @@ namespace Mono.Debugging.Client
 		readonly Dictionary<string, string> resolvedExpressionCache = new Dictionary<string, string> ();
 		readonly InternalDebuggerSession frontend;
 		readonly object slock = new object ();
+		readonly EvaluationStatistics evaluationStats = new EvaluationStatistics ();
 		BreakpointStore breakpointStore;
 		DebuggerSessionOptions options;
 		ProcessInfo[] currentProcesses;
@@ -131,6 +133,11 @@ namespace Mono.Debugging.Client
 		/// Custom event handler; raised when debugger send notifications
 		/// </summary>
 		public event EventHandler<NotificationEventArgs> TargetNotificationSent;
+
+		/// <summary>
+		/// Raised when an assembly is loaded
+		/// </summary>
+		public event EventHandler<AssemblyEventArgs> AssemblyLoaded;
 		
 		protected DebuggerSession ()
 		{
@@ -214,6 +221,10 @@ namespace Mono.Debugging.Client
 		public BreakEventHitHandler CustomBreakEventHitHandler {
 			get; set;
 		}
+
+		public EvaluationStatistics EvaluationStats {
+			get { return evaluationStats; }
+		}
 		
 		/// <summary>
 		/// Gets or sets the breakpoint store for the debugger session.
@@ -270,31 +281,28 @@ namespace Mono.Debugging.Client
 		}
 
 		readonly Queue<Action> actionsQueue = new Queue<Action>();
+		bool threadExecuting = false;
 
 		void Dispatch (Action action)
 		{
 			if (UseOperationThread) {
 				lock (actionsQueue) {
 					actionsQueue.Enqueue (action);
-					if (actionsQueue.Count == 1) {
+					if (!threadExecuting) {
+						threadExecuting = true;
 						ThreadPool.QueueUserWorkItem (delegate {
 							while (true) {
 								Action actionToExecute = null;
 								lock (actionsQueue) {
 									if (actionsQueue.Count > 0) {
-										actionToExecute = actionsQueue.Peek ();
+										actionToExecute = actionsQueue.Dequeue ();
 									} else {
+										threadExecuting = false;
 										return;
 									}
 								}
-								try {
-									lock (slock) {
-										actionToExecute ();
-									}
-								} finally {
-									lock (actionsQueue) {
-										actionsQueue.Dequeue ();
-									}
+								lock (slock) {
+									actionToExecute ();
 								}
 							}
 						});
@@ -1070,10 +1078,8 @@ namespace Mono.Debugging.Client
 			
 			if (args.Process != null)
 				args.Process.Attach (this);
-			if (args.Thread != null) {
+			if (args.Thread != null)
 				args.Thread.Attach (this);
-				activeThread = args.Thread;
-			}
 			if (args.Backtrace != null)
 				args.Backtrace.Attach (this);
 
@@ -1139,7 +1145,13 @@ namespace Mono.Debugging.Client
 				evnt = TargetThreadStopped;
 				break;
 			}
-
+			// Set activeThread only when event is IsStopEvent(stopping execution)
+			// otherwise ThreadDeath(as example) event can set activeThread to dying thread
+			// resulting in invalid activeThread being set while process is paused.
+			// This happens often when using ThreadPool because after breakpoint is hit and
+			// process is paused threadpool kills threads since they are not in use...
+			if (args.Thread != null && args.IsStopEvent)
+				activeThread = args.Thread;
 			if (evnt != null)
 				evnt (this, args);
 
@@ -1205,6 +1217,11 @@ namespace Mono.Debugging.Client
 			} else {
 				OnDebuggerOutput (false, string.Format ("[{0}:{1}] {2}", level, category, message));
 			}
+		}
+
+		internal protected void OnAssemblyLoaded (string assemblyLocation)
+		{
+			AssemblyLoaded?.Invoke (this, new AssemblyEventArgs (assemblyLocation));
 		}
 		
 		internal protected void SetBusyState (BusyStateEventArgs args)

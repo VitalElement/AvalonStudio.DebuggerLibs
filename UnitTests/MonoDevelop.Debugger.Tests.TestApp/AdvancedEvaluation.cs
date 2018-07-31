@@ -52,6 +52,44 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			}
 		}
 
+		public static void LocalFunctionVariablesTest()
+		{
+			var a = 23;
+			localFunction(24, "hi");
+
+			int localFunction(int b, string c)
+			{
+				var d = 25;
+				return a + b + d;/*07a0e6ef-e1d2-4f11-ab67-78e6ae5ea3bb*/
+			}
+		}
+
+		public static void LocalFunctionNoCaptureVariablesTest()
+		{
+			localFunction(17, 23, 31);
+
+			int localFunction(int a, int b, int c)
+			{
+				return a + b + c;/*056bb4b5-1c7a-4e21-bd93-abd7389809d0*/
+			}
+		}
+
+		public static void LocalFunctionCaptureDelegateVariablesTest()
+		{
+			var add = LocalFunctionCaptureDelegateVariablesTest_CreateAdder(7);
+			add(5);
+		}
+
+		static Func<int, int> LocalFunctionCaptureDelegateVariablesTest_CreateAdder(int i)
+		{
+			return localFunction;
+
+			int localFunction(int a)
+			{
+				return a + i;/*94100486-d7c4-4239-9d87-ad61287117d5*/
+			}
+		}
+
 		public void YieldMethodTest ()
 		{
 			YieldMethod ().ToList ();
@@ -68,6 +106,35 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			someVariable.Add (2);
 			yield return "3";/*760feb92-176a-43d7-b5c9-116c4a3c6a6c*/
 			yield return "4";/*a9a9aa9d-6b8b-4724-9741-2a3e1fb435e8*/
+		}
+
+		public void Bug33193Test ()
+		{
+			Bug33193 ().Wait ();
+		}
+
+		public async Task Bug33193()
+		{
+			var list = new [] { "a", "b", "c" };
+			foreach (var item1 in list) {
+				item1.ToString ();
+			}
+			await Task.Delay (0);
+			foreach (var item1 in list) {
+				item1.ToString ();/*f1665382-7ddc-4c65-9c20-39d4a0ae9cf1*/
+			}
+		}
+
+		public class Tuples
+		{
+			public List<(string xmlNs, object clrNs)> Usings { get; set; } = new List<(string xmlNs, object clrNs)> () { ("test", null) };
+		}
+
+		public void NamedTupleIndexMissmatchTest ()
+		{
+			foreach (var item in new Tuples ().Usings) {
+				item.xmlNs.ToUpper ();/*9196deef-9d41-41d6-bcef-9e3ef58f9635*/
+			}
 		}
 
 		public void Bug24998Test ()

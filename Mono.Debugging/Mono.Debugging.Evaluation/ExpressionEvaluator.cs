@@ -212,6 +212,10 @@ namespace Mono.Debugging.Evaluation
 		public EvaluatorException (string message, Exception innerException) : base (message, innerException)
 		{
 		}
+
+		public EvaluatorException (Exception innerException, string msg, params object [] args) : base (string.Format (msg, args), innerException)
+		{
+		}
 	}
 
 	[Serializable]

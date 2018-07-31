@@ -13,5 +13,6 @@ artifacts/
 *.usertasks
 *.mdb
 .DS_Store
+.vs
 Makefile.in
 

@@ -34,6 +34,56 @@ using System.Threading.Tasks;
 
 namespace MonoDevelop.Debugger.Tests.TestApp
 {
+	namespace Bug57425
+	{
+		interface IEx : IFoo
+		{
+
+		}
+
+		interface IFoo
+		{
+			string Prop { get; }
+		}
+
+		class B : IEx
+		{
+			public string Prop {
+				get {
+					return "3";
+				}
+			}
+		}
+		class MainClass : B
+		{
+			
+		}
+	}
+
+	interface ISymbol : IEquatable<ISymbol>
+	{
+		int Id { get; }
+	}
+	interface ITypeSymbol : ISymbol
+	{
+		string BaseType { get; }
+	}
+	interface INamedTypeSymbol : ITypeSymbol
+	{
+		string Name { get; }
+	}
+
+	class NamedTypeSymbol : INamedTypeSymbol
+	{
+		public int Id { get => 1; }
+		public string BaseType { get => "Type1"; }
+		public string Name { get => "Type2"; }
+		public bool Equals(ISymbol other)
+		{
+			return false;
+		}
+	}
+
 	interface IFoo
 	{
 		int this[int index] { get; }
@@ -52,7 +102,7 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 	{
 		int IBar.Prop { get { return 1; } }
 		int IFoo.Prop { get { return 2; } }
-		public int Prop { get { return 3; } }
+		public new int Prop { get { return 3; } }
 
 		int IFoo.this[int index]
 		{
@@ -67,6 +117,20 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			get
 			{
 				return -index;
+			}
+		}
+	}
+
+	public delegate int del (int x, int y);
+
+	public class SomeOuterClass
+	{
+		public class SomeInnerClass
+		{
+			public int n;
+			public SomeInnerClass(int n)
+			{
+				this.n = n;
 			}
 		}
 	}
@@ -105,13 +169,13 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 
 	class TestEvaluationChild : TestEvaluation
 	{
-		public int HiddenField = 6;
-		public int HiddenProperty {
+		public new int HiddenField = 6;
+		public new int HiddenProperty {
 			get {
 				return 6;
 			}
 		}
-		public int HiddenMethod ()
+		public new int HiddenMethod ()
 		{
 			return 6;
 		}
@@ -137,6 +201,30 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 				return "6";
 			}
 		}
+
+		public override int OverridenInvokeFuncInt (Func<int> f)
+		{
+			return f () + 1;
+		}
+
+		public override string OverridenInvokeFuncString (Func<string> f)
+		{
+			return f () + "-in-overriden";
+		}
+	}
+
+	public abstract class BaseClass
+	{
+		public enum MyEnum
+		{
+			Red,
+			Black
+		}
+		public virtual MyEnum Foo { get; set; }
+	}
+	public class OverrideClass : BaseClass
+	{
+		public override MyEnum Foo { get { return MyEnum.Black; } set { throw new NotImplementedException(); }}
 	}
 
 	class TestEvaluation : TestEvaluationParent
@@ -144,6 +232,10 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 		static string staticString = "some static";
 		string someString = "hi";
 		string[] numbers = { "one", "two", "three" };
+
+		public (int a, string, double B) PropertyA => (1, "2", 3.3);
+		public (bool C, float, string d) FieldB;
+		public (TestEvaluation e, int f) MethodC () => (null, 3);
 
 		public static void RunTest ()
 		{
@@ -155,6 +247,7 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 		{
 			int intZero = 0, intOne = 1;
 			int n = 32;
+			double d;
 			decimal dec = 123.456m;
 			var stringList = new List<string> ();
 			stringList.Add ("aaa");
@@ -229,7 +322,23 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			Foo = new FooBar ();
 			Bar = new FooBar ();
 
+			var inst1 = new SomeOuterClass.SomeInnerClass (5);
+			var inst2 = new SomeOuterClass.SomeInnerClass (10);
+			var instList = new List<SomeOuterClass.SomeInnerClass> { inst1, inst2 };
+			var instArray = instList.ToArray ();
+
+			Bug57425.IEx bug57425 = new Bug57425.MainClass ();
+
 			var testEvaluationChild = new TestEvaluationChild ();
+			FieldB = (true, 2.2f, "3");
+			var namedTuple = MethodC ();
+
+			int [] myLengthArray = new int [1] { 3 };
+			int [] myBoundArray = new int [1] { Int32.MinValue };
+			Array myExtremeArray = Array.CreateInstance (typeof (String), myLengthArray, myBoundArray);
+			myExtremeArray.SetValue ("b38c0da4-a009-409d-bc78-2a051267d05a", int.MinValue + 1);
+			BaseClass bar = new OverrideClass();
+			INamedTypeSymbol namedTypeSymbol = new NamedTypeSymbol ();
 
 			Console.WriteLine (n); /*break*/
 		}
@@ -259,7 +368,7 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			return a + 1;
 		}
 
-		public int TestMethodBase ()
+		public new int TestMethodBase ()
 		{
 			float c = 4;
 			return 1;
@@ -280,6 +389,16 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			return b ? 1 : 2;
 		}
 
+		public static bool NullableHasValue1 (int? test)
+		{
+			return test.HasValue;
+		}
+
+		public static bool IsNull (RichClass obj)
+		{
+			return obj == null;
+		}
+
 		public T ReturnSame<T> (T t)
 		{
 			return t;
@@ -293,6 +412,36 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 		public string BoxingTestMethod (object a)
 		{
 			return a.ToString ();
+		}
+
+		public int InvokeFuncInt (Func<int> f)
+		{
+			return f ();
+		}
+
+		public string InvokeFuncString (Func<string> f)
+		{
+			return f ();
+		}
+
+		public bool InvokePredicateString (Predicate<string> f)
+		{
+			return f ("abc");
+		}
+
+		public int InvokeUserDelegate (del f)
+		{
+			return f (5, 1);
+		}
+
+		public int OverloadedInvokeFunc (Func<int> f)
+		{
+			return f ();
+		}
+
+		public string OverloadedInvokeFunc (Func<string> f)
+		{
+			return f ();
 		}
 
 		public string EscapedStrings {
@@ -313,6 +462,11 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 				list.Add (value);
 			}
 			return list;
+		}
+
+		public static T InvokeGenericFunc<T> (T value, Func<T, T> f)
+		{
+			return f (value);
 		}
 
 		class NestedClass
@@ -359,6 +513,16 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			get {
 				return "5";
 			}
+		}
+
+		public virtual int OverridenInvokeFuncInt (Func<int> f)
+		{
+			return f ();
+		}
+
+		public virtual string OverridenInvokeFuncString (Func<string> f)
+		{
+			return f ();
 		}
 	}
 
@@ -512,7 +676,7 @@ class B: A
 
 	public new int IntField = 2;
 
-	public int TestMethod ()
+	public new int TestMethod ()
 	{
 		float c = 4;
 		return 2;
@@ -642,7 +806,9 @@ struct SimpleStruct
 {
 	public int IntField;
 	public string StringField;
+#pragma warning disable 649 // never assigned
 	public int? NulledIntField;
+#pragma warning restore 649
 
 	public override string ToString ()
 	{
@@ -688,7 +854,9 @@ struct myNint
 	}
 }
 
+#pragma warning disable 660, 661 // implements == but not Equals/GetHashCode
 class BinaryOperatorOverrides
+#pragma warning restore 660, 661 // implements == but not Equals/GetHashCode
 {
 	int value;
 

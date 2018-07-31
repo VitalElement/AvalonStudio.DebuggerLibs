@@ -60,6 +60,10 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			Console.Write ("NormalText");
 			Debug.Write ("DebugText");
 			Debug.Write ("");
+			var a = "hi";
+			if (a != "b") {
+				var b = a;/*cfc8fdb6-552a-40d2-8410-93a604e9063a*/
+			}
 			System.Diagnostics.Debugger.Log (3, "SomeCategory", "DebugText2");
 			Console.Error.Write ("ErrorText");
 			Console.Write ("");
@@ -71,6 +75,11 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			var testClass = new TestClass ();
 			var a = testClass.OneLineProperty;/*8e7787ed-699f-4512-b52a-5a0629a0b9eb*/
 			var b = a;/*36c0a44a-44ac-4676-b99b-9a58b73bae9d*/
+		}
+
+		public void StopOnBreakpointsEvenIfInNonUserCodeTest ()
+		{
+			NonUserCodeClass.NonUserMethod ();
 		}
 
 		public void StaticConstructorStepping ()
@@ -104,7 +113,9 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 		public void TestOperators ()
 		{
 			var testClass = new TestClass ();
+#pragma warning disable 1718 // comparison to same variable
 			var output = testClass == testClass;/*6049ea77-e04a-43ba-907a-5d198727c448*/
+#pragma warning restore 1718 // comparison to same variable
 			var a = output;/*49737db6-e62b-4c5e-8758-1a9d655be11a*/
 		}
 
@@ -193,6 +204,7 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			button.MakeClick ();/*67ae4cce-22b3-49d8-8221-7e5b26a5e79b*/
 		}
 
+#pragma warning disable 1998 // async without await
 		public void BreakpointInsideOneLineDelegateAsync ()
 		{
 			var button = new Button ();
@@ -200,6 +212,7 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			button.Clicked += async (sender, e) => button.SetTitle (String.Format ("clicked {0} times", numClicks++));/*b6a65e9e-5db2-4850-969a-b3747b2459af*/
 			button.MakeClick ();
 		}
+#pragma warning restore 1998 // async without await
 
 		public class Button
 		{
@@ -235,7 +248,9 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			var obj = new EmptyClassWithoutConstructor ();/*84fc04b2-ede2-4d8b-acc4-28441e1c5f55*/
 		}
 
+#pragma warning disable 1998 // async without await
 		static async Task<string> AsyncBug13401 ()
+#pragma warning restore 1998
 		{
 			return "Hello from Bar";
 		}
@@ -410,9 +425,8 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 		public void Catchpoint2 ()
 		{
 			try {
-				//If you wonder why I didn't use just simple File.Open("unexistingFile.txt") is
-				//that FrameStack inside Mono and .Net are different and same goes for 10+ other calls I tried...
-				new Socket (AddressFamily.InterNetwork, SocketType.Unknown, ProtocolType.Ggp);/*d24b1c9d-3944-4f0d-be31-5556251fbdf5*/
+				//Trigger exception in framework code with depth 1(int can't compare to object)
+				123.CompareTo(new object());/*d24b1c9d-3944-4f0d-be31-5556251fbdf5*/
 			} catch {
 
 			}
@@ -459,6 +473,26 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 		{
 		}
 
+		public void TestBug53371 ()
+		{
+			var domain1 = AppDomain.CreateDomain ("domain1", null, new AppDomainSetup () { ApplicationBase = "." });
+			domain1.ExecuteAssembly ("MonoDevelop.Debugger.Tests.AppDomainClient.exe", new [] { "1", "2", "3" });
+			var domain2 = AppDomain.CreateDomain ("domain2", null, new AppDomainSetup () { ApplicationBase = "." });
+			domain2.ExecuteAssembly ("MonoDevelop.Debugger.Tests.AppDomainClient.exe", new [] { "1", "2", "3" });
+			AppDomain.Unload (domain2);
+			AppDomain.Unload (domain1);/*e0aa9771-8072-4ae5-b827-51f44b281f4d*/
+		}
+
+		public void TestBugDomainBreakpointNotBound()
+		{
+			var domain1 = AppDomain.CreateDomain ("domain1", null, new AppDomainSetup () { ApplicationBase = "." });
+			domain1.ExecuteAssembly ("MonoDevelop.Debugger.Tests.AppDomainClient.exe", new [] { "1", "2", "3" });
+			AppDomain.Unload (domain1);/*3fda6c6b-9c2f-412b-9d0b-012bacdce577*/
+			var domain2 = AppDomain.CreateDomain ("domain2", null, new AppDomainSetup () { ApplicationBase = "." });
+			domain2.ExecuteAssembly ("MonoDevelop.Debugger.Tests.AppDomainClient.exe", new [] { "1", "2", "3" });
+			AppDomain.Unload (domain2);
+		}
+
 		class DontUseThisClassInOtherTests
 		{
 			//Or StaticConstructorStepping will fail because
@@ -470,8 +504,11 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			}
 		}
 
+#pragma warning disable 660, 661 // implements == but not Equals/GetHashCode
 		public class TestClass
+#pragma warning restore 660, 661
 		{
+
 			private string oneLineProperty = "";
 
 			public string OneLineProperty {

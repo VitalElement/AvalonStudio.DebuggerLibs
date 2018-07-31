@@ -1,10 +1,10 @@
 ﻿//
-// MyClass.cs
+// CodeCompletionTests.cs
 //
 // Author:
-//       David Karlaš <david.karlas@xamarin.com>
+//       David Karlaš <david.karlas@microsoft.com>
 //
-// Copyright (c) 2015 Xamarin, Inc (http://www.xamarin.com)
+// Copyright (c) 2017 Microsoft Corp.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -24,30 +24,55 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 using System;
-using System.Threading.Tasks;
+using Mono.Debugging.Tests;
+using MonoDevelop.Debugger;
+using NUnit.Framework;
 
-namespace MonoDevelop.Debugger.Tests.NonUserCodeTestLib
+namespace Mono.Debugging.Tests
 {
-	public class NonUserCodeClass
+	namespace Soft
 	{
-		// Trick with NonUserCode is that we are referencing output.dll instead of project
-		// in MonoDevelop.Debugger.Tests.TestApp.
-
-		//We must delay exception so stacktrace is not getting back to user code(in TestApp)
-		public static void ThrowDelayedHandledException ()
+		[TestFixture]
+		public class SdbCodeCompletionTests : CodeCompletionTests
 		{
-			Task.Delay (100).ContinueWith ((obj) => {
-				try {
-					throw new Exception ("3913936e-3f89-4f07-a863-7275aaaa5fc9");
-				} catch {
-				}
-			});
+			public SdbCodeCompletionTests () : base ("Mono.Debugger.Soft")
+			{
+			}
+		}
+	}
+
+	namespace Win32
+	{
+		[TestFixture]
+		[Platform (Include = "Win")]
+		public class CorCodeCompletionTests : CodeCompletionTests
+		{
+			public CorCodeCompletionTests () : base ("MonoDevelop.Debugger.Win32")
+			{
+			}
+		}
+	}
+
+	[TestFixture]
+	public abstract class CodeCompletionTests : DebugTests
+	{
+		public CodeCompletionTests (string engineId) : base (engineId)
+		{
 		}
 
-		public static void NonUserMethod()
+		[TestFixtureSetUp]
+		public override void SetUp ()
 		{
-			new NonUserCodeClass();/*ce16b8fd-dd76-440e-886a-8278820ce908*/
+			base.SetUp ();
+
+			Start ("TestEvaluation");
+		}
+
+		[Test]
+		public void SimpleVariablesList ()
+		{
+			var completionData = Session.ActiveThread.Backtrace.GetFrame (0).GetExpressionCompletionData ("");
+			Assert.Less (0, completionData.Items.Count);
 		}
 	}
 }
-

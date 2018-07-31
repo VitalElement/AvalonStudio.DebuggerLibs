@@ -1,10 +1,10 @@
 ﻿//
-// MyClass.cs
+// AssemblyEventArg.cs
 //
 // Author:
-//       David Karlaš <david.karlas@xamarin.com>
+//       Matt Ward <matt.ward@microsoft.com>
 //
-// Copyright (c) 2015 Xamarin, Inc (http://www.xamarin.com)
+// Copyright (c) 2018 Microsoft
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,31 +23,22 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
+
 using System;
-using System.Threading.Tasks;
 
-namespace MonoDevelop.Debugger.Tests.NonUserCodeTestLib
+namespace Mono.Debugging.Client
 {
-	public class NonUserCodeClass
+	public class AssemblyEventArgs: EventArgs
 	{
-		// Trick with NonUserCode is that we are referencing output.dll instead of project
-		// in MonoDevelop.Debugger.Tests.TestApp.
+		string location;
 
-		//We must delay exception so stacktrace is not getting back to user code(in TestApp)
-		public static void ThrowDelayedHandledException ()
+		public AssemblyEventArgs (string location)
 		{
-			Task.Delay (100).ContinueWith ((obj) => {
-				try {
-					throw new Exception ("3913936e-3f89-4f07-a863-7275aaaa5fc9");
-				} catch {
-				}
-			});
+			this.location = location;
 		}
 
-		public static void NonUserMethod()
-		{
-			new NonUserCodeClass();/*ce16b8fd-dd76-440e-886a-8278820ce908*/
+		public string Location {
+			get { return location; }
 		}
 	}
 }
-

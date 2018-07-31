@@ -57,6 +57,11 @@ namespace Mono.Debugging.Evaluation
 
 		public event EventHandler<BusyStateEventArgs> BusyStateChanged;
 
+		public DebuggerSession DebuggerSession {
+			get { return asyncEvaluationTracker.Session; }
+			set { asyncEvaluationTracker.Session = value; }
+		}
+
 		static readonly Dictionary<string, string> CSharpTypeNames = new Dictionary<string, string> ();
 
 		readonly List<CancellationTokenSource> cancellationTokenSources = new List<CancellationTokenSource> ();
@@ -300,6 +305,7 @@ namespace Mono.Debugging.Evaluation
 		public abstract bool IsArray (EvaluationContext ctx, object val);
 		public abstract bool IsEnum (EvaluationContext ctx, object val);
 		public abstract bool IsValueType (object type);
+		public virtual bool IsPrimitiveType (object type) { throw new NotImplementedException (); }
 		public abstract bool IsClass (EvaluationContext ctx, object type);
 		public abstract object TryCast (EvaluationContext ctx, object val, object type);
 
@@ -308,9 +314,19 @@ namespace Mono.Debugging.Evaluation
 		public abstract object[] GetTypeArgs (EvaluationContext ctx, object type);
 		public abstract object GetBaseType (EvaluationContext ctx, object type);
 
+		public virtual bool IsDelayedType (EvaluationContext ctx, object type)
+		{
+			return false;
+		}
+
 		public virtual bool IsGenericType (EvaluationContext ctx, object type)
 		{
 			return type != null && GetTypeName (ctx, type).IndexOf ('`') != -1;
+		}
+
+		public virtual IEnumerable<object> GetGenericTypeArguments (EvaluationContext ctx, object type)
+		{
+			yield break;
 		}
 
 		public virtual bool IsNullableType (EvaluationContext ctx, object type)
@@ -380,6 +396,11 @@ namespace Mono.Debugging.Evaluation
 			return false;
 		}
 
+		public virtual bool IsPublic (EvaluationContext ctx, object type)
+		{
+			return false;
+		}
+		
 		public object GetType (EvaluationContext ctx, string name)
 		{
 			return GetType (ctx, name, null);
@@ -433,6 +454,11 @@ namespace Mono.Debugging.Evaluation
 		public virtual object GetBaseValue (EvaluationContext ctx, object val)
 		{
 			return val;
+		}
+
+		public virtual object CreateDelayedLambdaValue (EvaluationContext ctx, string expression, Tuple<string, object>[] localVariables)
+		{
+			return null;
 		}
 
 		public virtual string[] GetImportedNamespaces (EvaluationContext ctx)
@@ -815,7 +841,7 @@ namespace Mono.Debugging.Evaluation
 
 		public virtual CompletionData GetExpressionCompletionData (EvaluationContext ctx, string expr)
 		{
-			if (string.IsNullOrEmpty (expr))
+			if (expr == null)
 				return null;
 
 			int dot = expr.LastIndexOf ('.');
@@ -830,6 +856,7 @@ namespace Mono.Debugging.Evaluation
 					}
 
 					// FIXME: handle types and namespaces...
+				} catch (EvaluatorException) {
 				} catch (Exception ex) {
 					ctx.WriteDebuggerError (ex);
 				}
@@ -848,24 +875,20 @@ namespace Mono.Debugging.Evaluation
 				lastWastLetter = !char.IsDigit (c);
 			}
 
-			if (lastWastLetter) {
-				string partialWord = expr.Substring (i + 1);
-
+			if (lastWastLetter || expr.Length == 0) {
 				var data = new CompletionData ();
-				data.ExpressionLength = partialWord.Length;
+				data.ExpressionLength = expr.Length - (i + 1);
 
 				// Local variables
 
 				foreach (var vc in GetLocalVariables (ctx)) {
-					if (vc.Name.StartsWith (partialWord, StringComparison.InvariantCulture))
-						data.Items.Add (new CompletionItem (vc.Name, vc.Flags));
+					data.Items.Add (new CompletionItem (vc.Name, vc.Flags));
 				}
 
 				// Parameters
 
 				foreach (var vc in GetParameters (ctx)) {
-					if (vc.Name.StartsWith (partialWord, StringComparison.InvariantCulture))
-						data.Items.Add (new CompletionItem (vc.Name, vc.Flags));
+					data.Items.Add (new CompletionItem (vc.Name, vc.Flags));
 				}
 
 				// Members
@@ -878,8 +901,7 @@ namespace Mono.Debugging.Evaluation
 				object type = GetEnclosingType (ctx);
 
 				foreach (var vc in GetMembers (ctx, null, type, thisobj != null ? thisobj.Value : null)) {
-					if (vc.Name.StartsWith (partialWord, StringComparison.InvariantCulture))
-						data.Items.Add (new CompletionItem (vc.Name, vc.Flags));
+					data.Items.Add (new CompletionItem (vc.Name, vc.Flags));
 				}
 
 				if (data.Items.Count > 0)
@@ -891,7 +913,7 @@ namespace Mono.Debugging.Evaluation
 
 		public IEnumerable<ValueReference> GetMembers (EvaluationContext ctx, IObjectSource objectSource, object t, object co)
 		{
-			foreach (ValueReference val in GetMembers (ctx, t, co, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static)) {
+			foreach (ValueReference val in GetMembers (ctx, objectSource, t, co, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static)) {
 				val.ParentSource = objectSource;
 				yield return val;
 			}
@@ -902,9 +924,14 @@ namespace Mono.Debugging.Evaluation
 			return GetMember (ctx, objectSource, GetValueType (ctx, co), co, name);
 		}
 
+		protected virtual ValueReference OnGetMember (EvaluationContext ctx, IObjectSource objectSource, object t, object co, string name)
+		{
+			return GetMember (ctx, t, co, name);
+		}
+
 		public ValueReference GetMember (EvaluationContext ctx, IObjectSource objectSource, object t, object co, string name)
 		{
-			ValueReference m = GetMember (ctx, t, co, name);
+			ValueReference m = OnGetMember (ctx, objectSource, t, co, name);
 			if (m != null)
 				m.ParentSource = objectSource;
 			return m;
@@ -931,7 +958,7 @@ namespace Mono.Debugging.Evaluation
 		{
 			var list = new List<ValueReference> ();
 
-			foreach (var vr in GetMembers (ctx, t, co, bindingFlags)) {
+			foreach (var vr in GetMembers (ctx, objectSource, t, co, bindingFlags)) {
 				vr.ParentSource = objectSource;
 				list.Add (vr);
 			}
@@ -958,6 +985,15 @@ namespace Mono.Debugging.Evaluation
 		/// BindingFlags.Static, BindingFlags.Instance, BindingFlags.Public, BindingFlags.NonPublic, BindingFlags.DeclareOnly
 		/// </summary>
 		protected abstract IEnumerable<ValueReference> GetMembers (EvaluationContext ctx, object t, object co, BindingFlags bindingFlags);
+
+		/// <summary>
+		/// Returns all members of a type. The following binding flags have to be honored:
+		/// BindingFlags.Static, BindingFlags.Instance, BindingFlags.Public, BindingFlags.NonPublic, BindingFlags.DeclareOnly
+		/// </summary>
+		protected virtual IEnumerable<ValueReference> GetMembers (EvaluationContext ctx, IObjectSource objectSource, object t, object co, BindingFlags bindingFlags)
+		{
+			return GetMembers (ctx, t, co, bindingFlags);
+		}
 
 		public virtual IEnumerable<object> GetNestedTypes (EvaluationContext ctx, object type)
 		{
@@ -997,6 +1033,26 @@ namespace Mono.Debugging.Evaluation
 			return RuntimeInvoke (ctx, arrType, arrayList, "ToArray", objTypes, new [] { typof });
 		}
 
+		public virtual object CreateArray (EvaluationContext ctx, object type, int [] lengths)
+		{
+			if (lengths.Length > 3) {
+				throw new NotSupportedException ("Arrays with more than 3 demensions are not supported.");
+			}
+			var arrType = GetType (ctx, "System.Array");
+			var intType = GetType (ctx, "System.Int32");
+			var typeType = GetType (ctx, "System.Type");
+			var arguments = new object [lengths.Length + 1];
+			var argTypes = new object [lengths.Length + 1];
+			arguments [0] = CreateTypeObject (ctx, type);
+			argTypes [0] = typeType;
+			for (int i = 0; i < lengths.Length; i++) {
+				arguments [i + 1] = FromRawValue (ctx, lengths [i]);
+				argTypes [i + 1] = intType;
+			}
+
+			return RuntimeInvoke (ctx, arrType, null, "CreateInstance", argTypes, arguments);
+		}
+		
 		public virtual object ToRawValue (EvaluationContext ctx, IObjectSource source, object obj)
 		{
 			if (IsEnum (ctx, obj)) {
@@ -1101,13 +1157,13 @@ namespace Mono.Debugging.Evaluation
 				return new EvaluationResult ("{" + ename + tn + "}");
 			}
 
+			object type = GetValueType (ctx, obj);
+			string typeName = GetTypeName (ctx, type);
 			if (IsEnum (ctx, obj)) {
-				object type = GetValueType (ctx, obj);
 				object longType = GetType (ctx, "System.Int64");
 				object c = Cast (ctx, obj, longType);
 				long val = (long) TargetObjectToObject (ctx, c);
 				long rest = val;
-				string typeName = GetTypeName (ctx, type);
 				string composed = string.Empty;
 				string composedDisplay = string.Empty;
 
@@ -1132,12 +1188,16 @@ namespace Mono.Debugging.Evaluation
 				return new EvaluationResult (val.ToString ());
 			}
 
-			if (GetValueTypeName (ctx, obj) == "System.Decimal") {
+			if (typeName == "System.Decimal") {
 				string res = CallToString (ctx, obj);
 				// This returns the decimal formatted using the current culture. It has to be converted to invariant culture.
 				decimal dec = decimal.Parse (res);
 				res = dec.ToString (System.Globalization.CultureInfo.InvariantCulture);
 				return new EvaluationResult (res);
+			}
+
+			if (typeName == "System.nfloat" || typeName == "System.nint") {
+				return TargetObjectToObject (ctx, GetMembersSorted (ctx, null, type, obj, BindingFlags.Instance | BindingFlags.NonPublic).Single ().Value);
 			}
 
 			if (IsClassInstance (ctx, obj)) {
@@ -1442,6 +1502,11 @@ namespace Mono.Debugging.Evaluation
 			}
 		}
 
+		public virtual bool HasMethodWithParamLength (EvaluationContext ctx, object targetType, string methodName, BindingFlags flags, int paramLength)
+		{
+			return false;
+		}
+
 		public bool HasMethod (EvaluationContext ctx, object targetType, string methodName)
 		{
 			BindingFlags flags = BindingFlags.Instance | BindingFlags.Static;
@@ -1467,6 +1532,14 @@ namespace Mono.Debugging.Evaluation
 		// argTypes can be null, meaning that it has to return true if there is any method with that name
 		// flags will only contain Static or Instance flags
 		public abstract bool HasMethod (EvaluationContext ctx, object targetType, string methodName, object[] genericTypeArgs, object[] argTypes, BindingFlags flags);
+
+		// outarg `untyped lambda`
+		// if one of argtypes is untyped lambda, this will resolve its type.
+		public virtual bool HasMethod (EvaluationContext ctx, object targetType, string methodName, object[] genericTypeArgs, object[] argTypes, BindingFlags flags, out Tuple<int, object>[] resolvedLambdaTypes)
+		{
+			resolvedLambdaTypes = null;
+			return HasMethod (ctx, targetType, methodName, genericTypeArgs, argTypes, flags);
+		}
 
 		public object RuntimeInvoke (EvaluationContext ctx, object targetType, object target, string methodName, object[] argTypes, object[] argValues)
 		{

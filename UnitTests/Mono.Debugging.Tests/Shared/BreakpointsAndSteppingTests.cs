@@ -28,6 +28,8 @@ using NUnit.Framework;
 using Mono.Debugging.Client;
 using System.Collections.Generic;
 using Mono.Debugging.Soft;
+using System.IO;
+using System.Threading;
 
 namespace Mono.Debugging.Tests
 {
@@ -879,7 +881,6 @@ namespace Mono.Debugging.Tests
 		[Test]
 		public void CatchPointTest2 ()
 		{
-			IgnoreSoftDebugger ("I'm having problem testing this because. There is error nonstop happening in framework about CurrentCulture featching.");
 			IgnoreCorDebugger ("Randomly fails");
 
 			InitializeTest ();
@@ -895,7 +896,7 @@ namespace Mono.Debugging.Tests
 		{
 			//It seems CorDebugger has different definition of what is user code and what is not.
 			IgnoreCorDebugger ("CorDebugger: TODO");
-
+			IgnoreSoftDebugger ("Ignored because randomly fails, #519942");
 			InitializeTest ();
 			Session.Options.ProjectAssembliesOnly = true;
 			AddBreakpoint ("999b8a83-8c32-4640-a8e1-f74309cda79c");
@@ -909,7 +910,19 @@ namespace Mono.Debugging.Tests
 			AddBreakpoint ("999b8a83-8c32-4640-a8e1-f74309cda79c");
 			StartTest ("CatchpointIgnoreExceptionsInNonUserCode");
 			WaitStop (2000);
-			Assert.AreEqual ("3913936e-3f89-4f07-a863-7275aaaa5fc9", Session.ActiveThread.Backtrace.GetFrame (0).GetException ().Message);
+			var activeThread = Session.ActiveThread;
+			if (activeThread == null)
+				throw new NullReferenceException (nameof (activeThread));
+			var backtrace = activeThread.Backtrace;
+			if (backtrace == null)
+				throw new NullReferenceException (nameof (backtrace));
+			var frame = backtrace.GetFrame (0);
+			if (frame == null)
+				throw new NullReferenceException (nameof (frame));
+			var exception = frame.GetException ();
+			if (exception == null)
+				throw new NullReferenceException (nameof (exception));
+			Assert.AreEqual ("3913936e-3f89-4f07-a863-7275aaaa5fc9", exception.Message);
 		}
 
 		[Test]
@@ -1078,12 +1091,16 @@ namespace Mono.Debugging.Tests
 
 			InitializeTest ();
 			AddBreakpoint ("5070ed1c-593d-4cbe-b4fa-b2b0c7b25289");
+			var br = AddBreakpoint("cfc8fdb6-552a-40d2-8410-93a604e9063a");
+			br.HitAction = HitAction.PrintExpression;
+			br.TraceExpression = "hey {a}";
 			var errorsList = new List<string> ();
 			errorsList.Add ("ErrorText");
 			var outputList = new HashSet<string> ();
 			outputList.Add ("NormalText");
 			var debugList = new List<Tuple<int,string,string>> ();
 			debugList.Add (new Tuple<int,string,string> (0, "", "DebugText"));
+			debugList.Add(new Tuple<int, string, string>(0, "", "hey \"hi\"\n"));
 			debugList.Add (new Tuple<int, string, string> (3, "SomeCategory", "DebugText2"));
 
 			var unexpectedOutput = new List<string> ();
@@ -1144,13 +1161,76 @@ namespace Mono.Debugging.Tests
 		[Test]
 		public void Bug21410 ()
 		{
-			IgnoreSoftDebugger ("Runtime bug.");
-
 			InitializeTest ();
 			AddBreakpoint ("5e6663d0-9088-40ad-914d-0fcc05b2d0d5");
 			StartTest ("TestBug21410");
 			CheckPosition ("5e6663d0-9088-40ad-914d-0fcc05b2d0d5");
 			StepOver ("5e6663d0-9088-40ad-914d-0fcc05b2d0d5", 1);
+		}
+
+		[Test]
+		[Ignore]
+		public void Bug53371()
+		{
+			InitializeTest();
+			Session.Options.ProjectAssembliesOnly = false;
+			Exception exception = null;
+			var exceptionRaised = new ManualResetEvent(false);
+			Session.ExceptionHandler = (ex) =>
+			{
+				exception = ex;
+				exceptionRaised.Set();
+				return true;
+			};
+			var file = ReadFile(Path.Combine(Path.GetDirectoryName(TargetProjectSourceDir), "MonoDevelop.Debugger.Tests.AppDomainClient", "Client.cs"));
+			AddBreakpoint("c6632437-1cac-45db-ac15-0ca13cf02aa1", file: file);
+			AddBreakpoint("e0aa9771-8072-4ae5-b827-51f44b281f4d", 1);
+			StartTest("TestBug53371");
+			CheckPosition("c6632437-1cac-45db-ac15-0ca13cf02aa1", file: file);
+			Continue("c6632437-1cac-45db-ac15-0ca13cf02aa1", file: file);
+			targetStoppedEvent.Reset();
+			Session.Continue();
+			var result = WaitHandle.WaitAny(new WaitHandle[] { exceptionRaised, targetStoppedEvent }, 5000);
+			switch (result)
+			{
+				case -1:
+					Assert.Fail("Timeout");
+					break;
+				case 0:
+					Assert.Fail(exception.ToString());
+					break;
+				case 1:
+					CheckPosition("e0aa9771-8072-4ae5-b827-51f44b281f4d", 1);
+					break;
+			}
+		}
+
+		[Test]
+		[Ignore]
+		public void BugDomainBreakpointNotBound ()
+		{
+			InitializeTest ();
+			Session.Options.ProjectAssembliesOnly = false;
+			var file = ReadFile (Path.Combine (Path.GetDirectoryName (TargetProjectSourceDir), "MonoDevelop.Debugger.Tests.AppDomainClient", "Client.cs"));
+			AddBreakpoint ("3fda6c6b-9c2f-412b-9d0b-012bacdce577");
+			StartTest ("TestBugDomainBreakpointNotBound");
+			CheckPosition ("3fda6c6b-9c2f-412b-9d0b-012bacdce577");
+			AddBreakpoint ("c6632437-1cac-45db-ac15-0ca13cf02aa1", file: file);
+			Continue ("c6632437-1cac-45db-ac15-0ca13cf02aa1", file: file);
+		}
+
+		/// <summary>
+		/// If user explicitly set breakpoint outside user code... Respect that breakpoint anyway
+		/// </summary>
+		[Test]
+		public void StopOnBreakpointsEvenIfInNonUserCode ()
+		{
+			InitializeTest ();
+			Session.Options.ProjectAssembliesOnly = true;
+			var file = ReadFile (Path.Combine (Path.GetDirectoryName (TargetProjectSourceDir), "MonoDevelop.Debugger.Tests.NonUserCodeTestLib", "NonUserCodeClass.cs"));
+			AddBreakpoint ("ce16b8fd-dd76-440e-886a-8278820ce908", file: file);
+			StartTest ("StopOnBreakpointsEvenIfInNonUserCodeTest");
+			CheckPosition ("ce16b8fd-dd76-440e-886a-8278820ce908", file: file);
 		}
 	}
 }

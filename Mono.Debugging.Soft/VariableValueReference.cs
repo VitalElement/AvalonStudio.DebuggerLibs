@@ -29,6 +29,7 @@ using System;
 using Mono.Debugging.Evaluation;
 using Mono.Debugging.Client;
 using Mono.Debugger.Soft;
+using System.Collections.Generic;
 
 namespace Mono.Debugging.Soft
 {
@@ -97,8 +98,8 @@ namespace Mono.Debugging.Soft
 						value = batch != null ? batch.GetValue (variable) : ctx.Frame.GetValue (variable);
 
 					return NormalizeValue (ctx, value);
-				} catch (AbsentInformationException) {
-					throw new EvaluatorException ("Value not available");
+				} catch (AbsentInformationException ex) {
+					throw new EvaluatorException (ex, "Value not available");
 				} catch (ArgumentException ex) {
 					throw new EvaluatorException (ex.Message);
 				}
@@ -107,6 +108,11 @@ namespace Mono.Debugging.Soft
 				((SoftEvaluationContext) Context).Frame.SetValue (variable, (Value) value);
 				this.value = (Value) value;
 			}
+		}
+
+		internal string [] GetTupleElementNames (SoftEvaluationContext ctx)
+		{
+			return ctx.Session.GetPdbData (variable.Method)?.GetTupleElementNames (variable.Method, variable.Index);
 		}
 	}
 }

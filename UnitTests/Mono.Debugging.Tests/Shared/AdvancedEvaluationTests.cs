@@ -24,6 +24,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 using System;
+using System.Linq;
 using NUnit.Framework;
 
 namespace Mono.Debugging.Tests
@@ -84,6 +85,19 @@ namespace Mono.Debugging.Tests
 		}
 
 		[Test]
+		public void NamedTupleIndexMissmatch ()
+		{
+			IgnoreCorDebugger ();
+			InitializeTest ();
+			AddBreakpoint ("9196deef-9d41-41d6-bcef-9e3ef58f9635");
+			StartTest ("NamedTupleIndexMissmatchTest");
+			CheckPosition ("9196deef-9d41-41d6-bcef-9e3ef58f9635");
+			var val = Eval ("item.xmlNs");
+			Assert.AreEqual ("\"test\"", val.Value);
+			Assert.AreEqual ("string", val.TypeName);
+		}
+
+		[Test]
 		public void Bug24998 ()
 		{
 			InitializeTest ();
@@ -106,6 +120,105 @@ namespace Mono.Debugging.Tests
 			Assert.AreEqual ("System.Action", val.TypeName);
 		}
 
+		[Test]
+		public void Bug33193 ()
+		{
+			InitializeTest ();
+			AddBreakpoint ("f1665382-7ddc-4c65-9c20-39d4a0ae9cf1");
+			StartTest ("Bug33193Test");
+			CheckPosition ("f1665382-7ddc-4c65-9c20-39d4a0ae9cf1");
+			Continue ("f1665382-7ddc-4c65-9c20-39d4a0ae9cf1");
+			var val = Eval ("item1");
+			Assert.AreEqual ("\"b\"", val.Value);
+			Assert.AreEqual ("string", val.TypeName);
+		}
+
+		[Test]
+		public void LocalFunctionVariablesTest ()
+		{
+			InitializeTest ();
+			AddBreakpoint ("07a0e6ef-e1d2-4f11-ab67-78e6ae5ea3bb");
+			StartTest ("LocalFunctionVariablesTest");
+			CheckPosition ("07a0e6ef-e1d2-4f11-ab67-78e6ae5ea3bb");
+
+			var val = Eval ("a");
+			Assert.AreEqual ("int", val.TypeName);
+			Assert.AreEqual ("23", val.Value);
+
+			var frame = Session.ActiveThread.Backtrace.GetFrame (0);
+			var locals = frame.GetAllLocals ();
+			Assert.AreEqual (4, locals.Length);
+
+			val = locals.Single (l => l.Name == "a");
+			Assert.AreEqual ("int", val.TypeName);
+			Assert.AreEqual ("23", val.Value);
+
+			val = locals.Single (l => l.Name == "b");
+			Assert.AreEqual ("int", val.TypeName);
+			Assert.AreEqual ("24", val.Value);
+
+			val = locals.Single (l => l.Name == "c");
+			Assert.AreEqual ("string", val.TypeName);
+			Assert.AreEqual ("\"hi\"", val.Value);
+
+			val = locals.Single (l => l.Name == "d");
+			Assert.AreEqual ("int", val.TypeName);
+			Assert.AreEqual ("25", val.Value);
+		}
+
+		[Test]
+		public void LocalFunctionNoCaptureVariablesTest ()
+		{
+			InitializeTest ();
+			AddBreakpoint ("056bb4b5-1c7a-4e21-bd93-abd7389809d0");
+			StartTest ("LocalFunctionNoCaptureVariablesTest");
+			CheckPosition ("056bb4b5-1c7a-4e21-bd93-abd7389809d0");
+
+			var val = Eval ("a");
+			Assert.AreEqual ("int", val.TypeName);
+			Assert.AreEqual ("17", val.Value);
+
+			var frame = Session.ActiveThread.Backtrace.GetFrame (0);
+			var locals = frame.GetAllLocals ();
+			Assert.AreEqual (3, locals.Length);
+
+			val = locals.Single (l => l.Name == "a");
+			Assert.AreEqual ("int", val.TypeName);
+			Assert.AreEqual ("17", val.Value);
+
+			val = locals.Single (l => l.Name == "b");
+			Assert.AreEqual ("int", val.TypeName);
+			Assert.AreEqual ("23", val.Value);
+
+			val = locals.Single (l => l.Name == "c");
+			Assert.AreEqual ("int", val.TypeName);
+			Assert.AreEqual ("31", val.Value);
+		}
+
+		[Test]
+		public void LocalFunctionCaptureDelegateVariablesTest ()
+		{
+			InitializeTest ();
+			AddBreakpoint ("94100486-d7c4-4239-9d87-ad61287117d5");
+			StartTest ("LocalFunctionCaptureDelegateVariablesTest");
+			CheckPosition ("94100486-d7c4-4239-9d87-ad61287117d5");
+
+			var val = Eval ("a");
+			Assert.AreEqual ("int", val.TypeName);
+			Assert.AreEqual ("5", val.Value);
+
+			var frame = Session.ActiveThread.Backtrace.GetFrame (0);
+			var locals = frame.GetAllLocals ();
+			Assert.AreEqual (2, locals.Length);
+
+			val = locals.Single (l => l.Name == "a");
+			Assert.AreEqual ("int", val.TypeName);
+			Assert.AreEqual ("5", val.Value);
+
+			val = locals.Single (l => l.Name == "i");
+			Assert.AreEqual ("int", val.TypeName);
+			Assert.AreEqual ("7", val.Value);
+		}
 
 		[Test]
 		public void YieldMethodTest ()
