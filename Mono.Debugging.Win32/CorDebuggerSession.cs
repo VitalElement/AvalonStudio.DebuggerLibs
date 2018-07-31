@@ -612,115 +612,107 @@ namespace Mono.Debugging.Win32
 		void OnModuleLoad (object sender, CorApi.Portable.ModuleEventArgs e)
 		{
 			var currentModule = e.Module;
-			CorMetadataImport mi = new CorMetadataImport (currentModule);
-
-			if (_attachMode)
-			{
-				try
-				{
-					// Required to avoid the jit to get rid of variables too early
-					currentModule.JITCompilerFlags = CorApi.Portable.CorDebugJITCompilerFlags.CordebugJitDisableOptimization;
-				}
-				catch
-				{
-					// Some kind of modules don't allow JIT flags to be changed.
-				}
-			}
-
-			var currentDomain = e.AppDomain;
-			OnDebuggerOutput (false, String.Format("Loading module {0} in application domain {1}:{2}\n", currentModule.Name, currentDomain.Id, currentDomain.Name));
-			string file = currentModule.Assembly.Name;
-			var newDocuments = new Dictionary<string, DocInfo> ();
-			var justMyCode = false;
-			ISymbolReader reader = null;
-			if (file.IndexOfAny (badPathChars) == -1) {
-				try {
-					reader = symbolBinder.GetReaderForFile (mi.RawCOMObject, file, ".",
-						SymSearchPolicies.AllowOriginalPathAccess | SymSearchPolicies.AllowReferencePathAccess);
-
-					if (reader == null && CustomSymbolReaderFactory != null) {
-						reader = CustomSymbolReaderFactory.CreateCustomSymbolReader (file);
+			using (var mi = new CorMetadataImport (currentModule)) {
+				if (_attachMode) {
+					try {
+						// Required to avoid the jit to get rid of variables too early
+						currentModule.JITCompilerFlags = CorApi.Portable.CorDebugJITCompilerFlags.CordebugJitDisableOptimization;
+					} catch {
+						// Some kind of modules don't allow JIT flags to be changed.
 					}
+				}
 
-					if (reader != null) {
-						OnDebuggerOutput (false, string.Format ("Symbols for module {0} loaded\n", file));
-						// set JMC to true only when we got the reader.
-						// When module JMC is true, debugger will step into it
-						justMyCode = true;
-						foreach (ISymbolDocument doc in reader.GetDocuments ()) {
-							if (string.IsNullOrEmpty (doc.URL))
-								continue;
-							string docFile = System.IO.Path.GetFullPath (doc.URL);
-							DocInfo di = new DocInfo ();
-							di.Document = doc;
-							newDocuments[docFile] = di;
+				var currentDomain = e.AppDomain;
+				OnDebuggerOutput (false, String.Format ("Loading module {0} in application domain {1}:{2}\n", currentModule.Name, currentDomain.Id, currentDomain.Name));
+				string file = currentModule.Assembly.Name;
+				var newDocuments = new Dictionary<string, DocInfo> ();
+				var justMyCode = false;
+				ISymbolReader reader = null;
+				if (file.IndexOfAny (badPathChars) == -1) {
+					try {
+						reader = symbolBinder.GetReaderForFile (mi.RawCOMObject, file, ".",
+							SymSearchPolicies.AllowOriginalPathAccess | SymSearchPolicies.AllowReferencePathAccess);
+
+						if (reader == null && CustomSymbolReaderFactory != null) {
+							reader = CustomSymbolReaderFactory.CreateCustomSymbolReader (file);
 						}
-					}
-				}
-				catch (COMException ex) {
-					var hResult = ex.ToHResult<PdbHResult> ();
-					if (hResult != null) {
-						if (hResult != PdbHResult.E_PDB_OK) {
-							OnDebuggerOutput (false, string.Format ("Failed to load pdb for assembly {0}. Error code {1}(0x{2:X})\n", file, hResult, ex.ErrorCode));
+
+						if (reader != null) {
+							OnDebuggerOutput (false, string.Format ("Symbols for module {0} loaded\n", file));
+							// set JMC to true only when we got the reader.
+							// When module JMC is true, debugger will step into it
+							justMyCode = true;
+							foreach (ISymbolDocument doc in reader.GetDocuments ()) {
+								if (string.IsNullOrEmpty (doc.URL))
+									continue;
+								string docFile = System.IO.Path.GetFullPath (doc.URL);
+								DocInfo di = new DocInfo ();
+								di.Document = doc;
+								newDocuments[docFile] = di;
+							}
 						}
-					}
-					else {
+					} catch (COMException ex) {
+						var hResult = ex.ToHResult<PdbHResult> ();
+						if (hResult != null) {
+							if (hResult != PdbHResult.E_PDB_OK) {
+								OnDebuggerOutput (false, string.Format ("Failed to load pdb for assembly {0}. Error code {1}(0x{2:X})\n", file, hResult, ex.ErrorCode));
+							}
+						} else {
+							DebuggerLoggingService.LogError (string.Format ("Loading symbols of module {0} failed", e.Module.Name), ex);
+						}
+					} catch (Exception ex) {
 						DebuggerLoggingService.LogError (string.Format ("Loading symbols of module {0} failed", e.Module.Name), ex);
 					}
 				}
-				catch (Exception ex) {
-					DebuggerLoggingService.LogError (string.Format ("Loading symbols of module {0} failed", e.Module.Name), ex);
+				try {
+					currentModule.SetJMCStatus (justMyCode, null);
+				} catch (SharpGen.Runtime.SharpGenException ex) {
+					// somewhen exceptions is thrown
+					DebuggerLoggingService.LogMessage ("Exception during setting JMC: {0}", ex.Message);
 				}
-			}
-			try {
-				currentModule.SetJMCStatus (justMyCode, null);
-			}
-			catch (SharpGen.Runtime.SharpGenException ex) {
-				// somewhen exceptions is thrown
-				DebuggerLoggingService.LogMessage ("Exception during setting JMC: {0}", ex.Message);
-			}
 
-			lock (appDomainsLock) {
-				AppDomainInfo appDomainInfo;
-				if (!appDomains.TryGetValue (currentDomain.Id, out appDomainInfo)) {
-				  DebuggerLoggingService.LogMessage ("OnCreatedAppDomain was not fired for domain {0} (id {1})", currentDomain.Name, currentDomain.Id);
-					appDomainInfo = new AppDomainInfo {
-						AppDomain = currentDomain,
-						Documents = new Dictionary<string, DocInfo> (StringComparer.InvariantCultureIgnoreCase),
-						Modules = new Dictionary<string, ModuleInfo> (StringComparer.InvariantCultureIgnoreCase)
-					};
-					appDomains[currentDomain.Id] = appDomainInfo;
-				}
-				var modules = appDomainInfo.Modules;
-				if (modules.ContainsKey (currentModule.Name)) {
-				  DebuggerLoggingService.LogMessage ("Module {0} was already added for app domain {1} (id {2}). Replacing\n",
-						currentModule.Name, currentDomain.Name, currentDomain.Id);
-				}
-				var newModuleInfo = new ModuleInfo {
-					Module = currentModule,
-					Reader = reader,
-					Importer = mi,
-				};
-				modules[currentModule.Name] = newModuleInfo;
-				var existingDocuments = appDomainInfo.Documents;
-				foreach (var newDocument in newDocuments) {
-					var documentFile = newDocument.Key;
-					var newDocInfo = newDocument.Value;
-					if (existingDocuments.ContainsKey (documentFile)) {
-					  DebuggerLoggingService.LogMessage ("Document {0} was already added for module {1} in domain {2} (id {3}). Replacing\n",
-							documentFile, currentModule.Name, currentDomain.Name, currentDomain.Id);
+				lock (appDomainsLock) {
+					AppDomainInfo appDomainInfo;
+					if (!appDomains.TryGetValue (currentDomain.Id, out appDomainInfo)) {
+						DebuggerLoggingService.LogMessage ("OnCreatedAppDomain was not fired for domain {0} (id {1})", currentDomain.Name, currentDomain.Id);
+						appDomainInfo = new AppDomainInfo {
+							AppDomain = currentDomain,
+							Documents = new Dictionary<string, DocInfo> (StringComparer.InvariantCultureIgnoreCase),
+							Modules = new Dictionary<string, ModuleInfo> (StringComparer.InvariantCultureIgnoreCase)
+						};
+						appDomains[currentDomain.Id] = appDomainInfo;
 					}
-					newDocInfo.ModuleInfo = newModuleInfo;
-					existingDocuments[documentFile] = newDocInfo;
+					var modules = appDomainInfo.Modules;
+					if (modules.ContainsKey (currentModule.Name)) {
+						DebuggerLoggingService.LogMessage ("Module {0} was already added for app domain {1} (id {2}). Replacing\n",
+							  currentModule.Name, currentDomain.Name, currentDomain.Id);
+					}
+					var newModuleInfo = new ModuleInfo {
+						Module = currentModule,
+						Reader = reader,
+						Importer = mi,
+					};
+					modules[currentModule.Name] = newModuleInfo;
+					var existingDocuments = appDomainInfo.Documents;
+					foreach (var newDocument in newDocuments) {
+						var documentFile = newDocument.Key;
+						var newDocInfo = newDocument.Value;
+						if (existingDocuments.ContainsKey (documentFile)) {
+							DebuggerLoggingService.LogMessage ("Document {0} was already added for module {1} in domain {2} (id {3}). Replacing\n",
+								  documentFile, currentModule.Name, currentDomain.Name, currentDomain.Id);
+						}
+						newDocInfo.ModuleInfo = newModuleInfo;
+						existingDocuments[documentFile] = newDocInfo;
+					}
+
 				}
 
-			}
+				foreach (var newFile in newDocuments.Keys) {
+					BindSourceFileBreakpoints (newFile);
+				}
 
-			foreach (var newFile in newDocuments.Keys) {
-				BindSourceFileBreakpoints (newFile);
+				e.Continue = true;
 			}
-
-			e.Continue = true;
 		}
 
 		void OnModuleUnload (object sender, CorApi.Portable.ModuleEventArgs e)

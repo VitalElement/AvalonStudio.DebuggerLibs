@@ -20,15 +20,22 @@ using SharpGen.Runtime;
 
 namespace Microsoft.Samples.Debugging.CorMetadata
 {
-    public sealed class CorMetadataImport
+    public sealed class CorMetadataImport : IDisposable
     {
         public CorMetadataImport(CorApi.Portable.Module managedModule)
         {
-            IUnknown mdi = null;
-            managedModule.GetMetaDataInterface (typeof(CorApi.Portable.IMetaDataImport).GUID, out mdi);
+            managedModule.GetMetaDataInterface (typeof (CorApi.Portable.IMetaDataImport).GUID, out var mdi);
 
             m_importer = ((ComObject)mdi).QueryInterfaceOrNull<CorApi.Portable.IMetaDataImport>();
+
+            mdi.Release ();
+            
             Debug.Assert(m_importer != null);
+        }
+
+        public void Dispose()
+        {
+            m_importer.Release ();
         }
 
         public CorMetadataImport(object metadataImport)

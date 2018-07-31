@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Diagnostics.SymbolStore;
 using System.Reflection;
 using Microsoft.Samples.Debugging.CorDebug;
@@ -12,7 +12,7 @@ using System;
 
 namespace Mono.Debugging.Win32
 {
-	class CorBacktrace: BaseBacktrace
+	class CorBacktrace : BaseBacktrace
 	{
 		CorApi.Portable.Thread thread;
 		readonly uint threadId;
@@ -20,7 +20,7 @@ namespace Mono.Debugging.Win32
 		List<CorApi.Portable.Frame> frames;
 		int evalTimestamp;
 
-		public CorBacktrace (CorApi.Portable.Thread thread, CorDebuggerSession session): base (session.ObjectAdapter)
+		public CorBacktrace (CorApi.Portable.Thread thread, CorDebuggerSession session) : base (session.ObjectAdapter)
 		{
 			this.session = session;
 			this.thread = thread;
@@ -41,14 +41,12 @@ namespace Mono.Debugging.Win32
 
 						foreach (CorApi.Portable.Frame frame in chainFrames)
 							corFrames.Add (frame);
-					}
-					catch (COMException e) {
+					} catch (COMException e) {
 						DebuggerLoggingService.LogMessage ("Failed to enumerate frames of chain: {0}", e.Message);
 					}
 				}
 
-			}
-			catch (COMException e) {
+			} catch (COMException e) {
 				DebuggerLoggingService.LogMessage ("Failed to enumerate chains of thread: {0}", e.Message);
 			}
 			return corFrames;
@@ -71,7 +69,7 @@ namespace Mono.Debugging.Win32
 			ctx.Thread = thread;
 			return ctx;
 		}
-	
+
 		#region IBacktrace Members
 
 		public override AssemblyLine[] Disassemble (int frameIndex, int firstLine, int count)
@@ -79,8 +77,7 @@ namespace Mono.Debugging.Win32
 			return new AssemblyLine[0];
 		}
 
-		public override int FrameCount
-		{
+		public override int FrameCount {
 			get { return FrameList.Count; }
 		}
 
@@ -96,7 +93,7 @@ namespace Mono.Debugging.Win32
 
 		private const int SpecialSequencePoint = 0xfeefee;
 
-		public static SequencePoint GetSequencePoint(CorDebuggerSession session, CorApi.Portable.Frame frame)
+		public static SequencePoint GetSequencePoint (CorDebuggerSession session, CorApi.Portable.Frame frame)
 		{
 			ISymbolReader reader = session.GetReaderForModule (frame.Function.Module);
 			if (reader == null)
@@ -124,33 +121,33 @@ namespace Mono.Debugging.Win32
 			ISymbolDocument[] docs = new ISymbolDocument[SequenceCount];
 			met.GetSequencePoints (offsets, docs, lines, columns, endLines, endColumns);
 
-			if ((SequenceCount > 0) && (offsets [0] <= ip)) {
+			if ((SequenceCount > 0) && (offsets[0] <= ip)) {
 				int i;
 				for (i = 0; i < SequenceCount; ++i) {
-					if (offsets [i] >= ip) {
+					if (offsets[i] >= ip) {
 						break;
 					}
 				}
 
-				if ((i == SequenceCount) || (offsets [i] != ip)) {
+				if ((i == SequenceCount) || (offsets[i] != ip)) {
 					--i;
 				}
 
-				if (lines [i] == SpecialSequencePoint) {
+				if (lines[i] == SpecialSequencePoint) {
 					int j = i;
 					// let's try to find a sequence point that is not special somewhere earlier in the code
 					// stream.
 					while (j > 0) {
 						--j;
-						if (lines [j] != SpecialSequencePoint) {
+						if (lines[j] != SpecialSequencePoint) {
 							return new SequencePoint () {
 								IsSpecial = true,
-								Offset = (uint)offsets [j],
-								StartLine = lines [j],
-								EndLine = endLines [j],
-								StartColumn = columns [j],
-								EndColumn = endColumns [j],
-								Document = docs [j]
+								Offset = (uint)offsets[j],
+								StartLine = lines[j],
+								EndLine = endLines[j],
+								StartColumn = columns[j],
+								EndColumn = endColumns[j],
+								Document = docs[j]
 							};
 						}
 					}
@@ -158,15 +155,15 @@ namespace Mono.Debugging.Win32
 					// after.
 					j = i;
 					while (++j < SequenceCount) {
-						if (lines [j] != SpecialSequencePoint) {
+						if (lines[j] != SpecialSequencePoint) {
 							return new SequencePoint () {
 								IsSpecial = true,
-								Offset = (uint)offsets [j],
-								StartLine = lines [j],
-								EndLine = endLines [j],
-								StartColumn = columns [j],
-								EndColumn = endColumns [j],
-								Document = docs [j]
+								Offset = (uint)offsets[j],
+								StartLine = lines[j],
+								EndLine = endLines[j],
+								StartColumn = columns[j],
+								EndColumn = endColumns[j],
+								Document = docs[j]
 							};
 						}
 					}
@@ -178,12 +175,12 @@ namespace Mono.Debugging.Win32
 				} else {
 					return new SequencePoint () {
 						IsSpecial = false,
-						Offset = (uint)offsets [i],
-						StartLine = lines [i],
-						EndLine = endLines [i],
-						StartColumn = columns [i],
-						EndColumn = endColumns [i],
-						Document = docs [i]
+						Offset = (uint)offsets[i],
+						StartLine = lines[i],
+						EndLine = endLines[i],
+						StartColumn = columns[i],
+						EndColumn = endColumns[i],
+						Document = docs[i]
 					};
 				}
 			}
@@ -210,42 +207,42 @@ namespace Mono.Debugging.Win32
 			if (frame.FrameType == CorApi.Portable.CorFrameType.ILFrame) {
 				if (frame.Function != null) {
 					module = frame.Function.Module.Name;
-					CorMetadataImport importer = new CorMetadataImport (frame.Function.Module);
-					MethodInfo mi = importer.GetMethodInfo (frame.Function.Token);
-					var declaringType = mi.DeclaringType;
-					if (declaringType != null) {
-						method = declaringType.FullName + "." + mi.Name;
-						type = declaringType.FullName;
-					}
-					else {
-						method = mi.Name;
-					}
-
-					addressSpace = mi.Name;
-					
-					var sp = GetSequencePoint (session, frame);
-					if (sp != null) {
-						line = sp.StartLine;
-						column = sp.StartColumn;
-						endLine = sp.EndLine;
-						endColumn = sp.EndColumn;
-						file = sp.Document.URL;
-						address = (int)sp.Offset;
-					}
-
-					if (session.IsExternalCode (file)) {
-						external = true;
-					} else {
-						if (session.Options.ProjectAssembliesOnly) {
-							external = mi.GetCustomAttributes (true).Any (v => 
-								v is System.Diagnostics.DebuggerHiddenAttribute ||
-							v is System.Diagnostics.DebuggerNonUserCodeAttribute);
+					using (var importer = new CorMetadataImport (frame.Function.Module)) {
+						MethodInfo mi = importer.GetMethodInfo (frame.Function.Token);
+						var declaringType = mi.DeclaringType;
+						if (declaringType != null) {
+							method = declaringType.FullName + "." + mi.Name;
+							type = declaringType.FullName;
 						} else {
-							external = mi.GetCustomAttributes (true).Any (v => 
-								v is System.Diagnostics.DebuggerHiddenAttribute);
+							method = mi.Name;
 						}
+
+						addressSpace = mi.Name;
+
+						var sp = GetSequencePoint (session, frame);
+						if (sp != null) {
+							line = sp.StartLine;
+							column = sp.StartColumn;
+							endLine = sp.EndLine;
+							endColumn = sp.EndColumn;
+							file = sp.Document.URL;
+							address = (int)sp.Offset;
+						}
+
+						if (session.IsExternalCode (file)) {
+							external = true;
+						} else {
+							if (session.Options.ProjectAssembliesOnly) {
+								external = mi.GetCustomAttributes (true).Any (v =>
+									v is System.Diagnostics.DebuggerHiddenAttribute ||
+								v is System.Diagnostics.DebuggerNonUserCodeAttribute);
+							} else {
+								external = mi.GetCustomAttributes (true).Any (v =>
+									v is System.Diagnostics.DebuggerHiddenAttribute);
+							}
+						}
+						hidden = mi.GetCustomAttributes (true).Any (v => v is System.Diagnostics.DebuggerHiddenAttribute);
 					}
-					hidden = mi.GetCustomAttributes (true).Any (v => v is System.Diagnostics.DebuggerHiddenAttribute);
 				}
 				lang = "Managed";
 				hasDebugInfo = true;
