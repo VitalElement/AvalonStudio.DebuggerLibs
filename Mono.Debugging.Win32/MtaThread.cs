@@ -16,41 +16,23 @@ namespace Mono.Debugging.Win32
 
 		public static Thread MainThread {get; set;}
 
-		public static R Run<R>(Func<R> ts, int timeout = 15000)
+		public static R Run<R> (Func<R> ts, int timeout = 15000)
 		{
-			if (AvalonStudio.Platforms.Platform.PlatformIdentifier == AvalonStudio.Platforms.PlatformID.Win32NT)
-			{
-				if (Thread.CurrentThread == MainThread)
-				{
-					return ts();					
-				}
-			}
-			else
-			{
-				return ts();				
+			if (Thread.CurrentThread == MainThread) {
+				return ts ();
 			}
 
-			R res = default(R);
-			Run(delegate
-			{
-				res = ts();
+			R res = default (R);
+			Run (delegate {
+				res = ts ();
 			}, timeout);
 			return res;
 		}
 
-		public static void Run(Action ts, int timeout = 15000)
-		{			
-			if (AvalonStudio.Platforms.Platform.PlatformIdentifier == AvalonStudio.Platforms.PlatformID.Win32NT)
-			{
-				if (Thread.CurrentThread == MainThread)
-				{
-					ts();
-					return;
-				}
-			}
-			else
-			{
-				ts();
+		public static void Run(Action ts, int timeout = 25000)
+		{
+			if (Thread.CurrentThread == MainThread) {
+				ts ();
 				return;
 			}
 
@@ -75,7 +57,7 @@ namespace Mono.Debugging.Win32
 						Monitor.Pulse (threadLock);
 				}
 				if (!wordDoneEvent.WaitOne (timeout)) {
-					workThread.Abort ();
+					//workThread.Abort ();
 					throw new Exception ("Debugger operation timeout on MTA thread.");
 				}
 			}
