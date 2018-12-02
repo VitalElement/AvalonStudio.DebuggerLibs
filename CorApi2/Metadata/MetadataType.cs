@@ -86,7 +86,10 @@ namespace Microsoft.Samples.Debugging.CorMetadata
                             out size
                         );
 
-                        name = new string(szTypedef, 0, (int)size - 1);
+                        if (size > 0)
+                        {
+                            name = new string (szTypedef, 0, (int)size - 1);
+                        }
                     }
                     else
                     {
@@ -99,7 +102,10 @@ namespace Microsoft.Samples.Debugging.CorMetadata
                             out ptkExtends
                         );
 
-                        name = new string(szTypedef, 0, (int)size - 1);
+                        if (size > 0)
+                        {
+                            name = new string (szTypedef, 0, (int)size - 1);
+                        }
                     }
                     m_name = GetNestedClassPrefix(importer, classToken, (TypeAttributes)pdwTypeDefFlags) + name;
 

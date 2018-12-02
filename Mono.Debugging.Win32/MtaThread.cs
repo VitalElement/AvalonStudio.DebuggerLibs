@@ -1,4 +1,4 @@
-﻿using AvalonStudio.Extensibility.Threading;
+using AvalonStudio.Extensibility.Threading;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -20,7 +20,7 @@ namespace Mono.Debugging.Win32
 		{
 			if (AvalonStudio.Platforms.Platform.PlatformIdentifier == AvalonStudio.Platforms.PlatformID.Win32NT)
 			{
-				if (Thread.CurrentThread.GetApartmentState() == ApartmentState.MTA)
+				if (Thread.CurrentThread == MainThread)
 				{
 					return ts();					
 				}
@@ -42,7 +42,7 @@ namespace Mono.Debugging.Win32
 		{			
 			if (AvalonStudio.Platforms.Platform.PlatformIdentifier == AvalonStudio.Platforms.PlatformID.Win32NT)
 			{
-				if (Thread.CurrentThread.GetApartmentState() == ApartmentState.MTA)
+				if (Thread.CurrentThread == MainThread)
 				{
 					ts();
 					return;
@@ -60,6 +60,7 @@ namespace Mono.Debugging.Win32
 					workError = null;
 					if (workThread == null) {
 						workThread = new Thread (MtaRunner);
+						MainThread = workThread;
 						workThread.Name = "Win32 Debugger MTA Thread";
 						
 						if (AvalonStudio.Platforms.Platform.PlatformIdentifier == AvalonStudio.Platforms.PlatformID.Win32NT)
@@ -67,7 +68,7 @@ namespace Mono.Debugging.Win32
 							workThread.SetApartmentState (ApartmentState.MTA);
 						}
 						
-						workThread.IsBackground = true;
+						//workThread.IsBackground = true;
 						workThread.Start ();
 					} else
 						// Awaken the existing thread

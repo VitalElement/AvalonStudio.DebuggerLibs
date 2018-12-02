@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Microsoft.Samples.Debugging.CorDebug;
@@ -125,7 +125,7 @@ namespace Mono.Debugging.Win32
 					eval.RudeAbort();
 				}
 
-			} catch (COMException e) {
+			} catch (SharpGen.Runtime.SharpGenException e) {
 				var hResult = e.ToHResult<HResult> ();
 				switch (hResult) {
 					case HResult.CORDBG_E_PROCESS_TERMINATED:

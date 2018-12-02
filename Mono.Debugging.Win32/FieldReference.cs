@@ -113,7 +113,7 @@ namespace Mono.Debugging.Win32
 				try {
 					val = type.GetStaticFieldValue ((uint)field.MetadataToken, ctx.Frame);
 					return new CorValRef (val, loader);
-				} catch (COMException e) {
+				} catch (SharpGen.Runtime.SharpGenException e) {
 					if (e.ToHResult<HResult> () == HResult.CORDBG_E_STATIC_VAR_NOT_AVAILABLE)
 						throw new EvaluatorException("A static variable is not available because it has not been initialized yet");
 					throw;

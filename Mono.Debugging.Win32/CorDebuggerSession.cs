@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -76,9 +76,7 @@ namespace Mono.Debugging.Win32
 		}
 
 		public CorDebuggerSession(char[] badPathChars)
-		{
-			MtaThread.MainThread = Thread.CurrentThread;
-			
+		{	
 			this.badPathChars = badPathChars;
 			ObjectAdapter.BusyStateChanged += (sender, e) => SetBusyState (e);
 			var cancellationToken = helperOperationsCancellationTokenSource.Token;
@@ -204,12 +202,12 @@ namespace Mono.Debugging.Win32
 							process.Terminate (1);
 						}
 					}
-					catch (COMException e) {
+					catch (SharpGen.Runtime.SharpGenException e) {
 						// process was terminated, but debugger operation thread doesn't call ProcessExit callback at the time,
 						// so we just think that the process is alive but that's wrong.
 						// This may happen when e.g. when target process exited and Dispose was called at the same time
 						// rethrow the exception in other case
-						if (e.ErrorCode != (int) HResult.CORDBG_E_PROCESS_TERMINATED) {
+						if (e.HResult != (int) HResult.CORDBG_E_PROCESS_TERMINATED) {
 							throw;
 						}
 					}
@@ -651,11 +649,11 @@ namespace Mono.Debugging.Win32
 								newDocuments[docFile] = di;
 							}
 						}
-					} catch (COMException ex) {
+					} catch (SharpGen.Runtime.SharpGenException ex) {
 						var hResult = ex.ToHResult<PdbHResult> ();
 						if (hResult != null) {
 							if (hResult != PdbHResult.E_PDB_OK) {
-								OnDebuggerOutput (false, string.Format ("Failed to load pdb for assembly {0}. Error code {1}(0x{2:X})\n", file, hResult, ex.ErrorCode));
+								OnDebuggerOutput (false, string.Format ("Failed to load pdb for assembly {0}. Error code {1}(0x{2:X})\n", file, hResult, ex.HResult));
 							}
 						} else {
 							DebuggerLoggingService.LogError (string.Format ("Loading symbols of module {0} failed", e.Module.Name), ex);
@@ -970,7 +968,7 @@ namespace Mono.Debugging.Win32
 						try {
 							bp.Activate (enable);
 						}
-						catch (COMException e) {
+						catch (SharpGen.Runtime.SharpGenException e) {
 							HandleBreakpointException (binfo, e);
 						}
 					}
@@ -1242,7 +1240,7 @@ namespace Mono.Debugging.Win32
 								corBp.Activate (bp.Enabled);
 								binfo.SetStatus (BreakEventStatus.Bound, null);
 							}
-							catch (COMException e) {
+							catch (SharpGen.Runtime.SharpGenException e) {
 								HandleBreakpointException (binfo, e);
 							}
 						}
@@ -1277,7 +1275,7 @@ namespace Mono.Debugging.Win32
 			});
 		}
 
-		private static void HandleBreakpointException (BreakEventInfo binfo, COMException e)
+		private static void HandleBreakpointException (BreakEventInfo binfo, SharpGen.Runtime.SharpGenException e)
 		{
 			var code = e.ToHResult<HResult> ();
 			if (code != null) {
@@ -1399,7 +1397,7 @@ namespace Mono.Debugging.Win32
 					try {
 						corBp.Activate (false);
 					}
-					catch (COMException e) {
+					catch (SharpGen.Runtime.SharpGenException e) {
 						HandleBreakpointException (bi, e);
 					}
 				}
@@ -1496,7 +1494,7 @@ namespace Mono.Debugging.Win32
 				WaitUntilStopped ();
 				return result.Result;
 			}
-			catch (COMException ex) {
+			catch (SharpGen.Runtime.SharpGenException ex) {
 				// eval exception is a 'good' exception that should be shown in value box
 				// all other exceptions must be thrown to error log
 				var evalException = TryConvertToEvalException (ex);
@@ -1559,7 +1557,7 @@ namespace Mono.Debugging.Win32
 					return null;
 				}
 			}
-			catch (COMException ex) {
+			catch (SharpGen.Runtime.SharpGenException ex) {
 				var evalException = TryConvertToEvalException (ex);
 				// eval exception is a 'good' exception that should be shown in value box
 				// all other exceptions must be thrown to error log
@@ -1584,9 +1582,9 @@ namespace Mono.Debugging.Win32
 			return NewSpecialObject (ctx, eval => eval.NewParameterizedArray (elemType, 1, 1, 0));
 		}
 
-		private static EvaluatorException TryConvertToEvalException (COMException ex)
+		private static EvaluatorException TryConvertToEvalException (SharpGen.Runtime.SharpGenException ex)
 		{
-			var hResult = ex.ToHResult<HResult> ();
+			var hResult = (HResult)ex.HResult;
 			string message = null;
 			switch (hResult) {
 				case HResult.CORDBG_E_ILLEGAL_AT_GC_UNSAFE_POINT:

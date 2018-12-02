@@ -448,11 +448,11 @@ namespace Microsoft.Samples.Debugging.CorDebug
             {
                 ilframe.GetLocalVariable((uint)index,out value);
             }
-            catch(System.Runtime.InteropServices.COMException e)
+            catch(SharpGen.Runtime.SharpGenException e)
             {
                 // If you are stopped in the Prolog, the variable may not be available.
                 // CORDBG_E_IL_VAR_NOT_AVAILABLE is returned after dubugee triggers StackOverflowException
-                if(e.ErrorCode == (int)HResult.CORDBG_E_IL_VAR_NOT_AVAILABLE)
+                if(e.HResult == (int)HResult.CORDBG_E_IL_VAR_NOT_AVAILABLE)
                 {
                     return null;
                 }

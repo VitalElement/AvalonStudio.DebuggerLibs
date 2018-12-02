@@ -1,4 +1,4 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
 using Microsoft.Samples.Debugging.CorDebug;
 using Mono.Debugging.Client;
 
@@ -58,8 +58,8 @@ namespace Mono.Debugging.Win32
 				// and if it fails we reload the value
 				var valExactType = val.ExactType;
 			}
-			catch (COMException e) {
-				if (e.ToHResult<HResult> () == HResult.CORDBG_E_OBJECT_NEUTERED) {
+			catch (SharpGen.Runtime.SharpGenException e) {
+				if (e.HResult == (int)HResult.CORDBG_E_OBJECT_NEUTERED) {
 					DebuggerLoggingService.LogMessage (string.Format ("Value is out of date: {0}", e.Message));
 					return false;
 				}

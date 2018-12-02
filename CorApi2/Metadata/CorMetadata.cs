@@ -145,10 +145,10 @@ namespace Microsoft.Samples.Debugging.CorMetadata
                 {
                     m_importer.FindTypeDefByName(name,0,out token);
                 }
-                catch(COMException e)
+                catch(SharpGenException e)
                 {
                     token=CorMetadataImport.TokenNotFound;
-                    if((HResult)e.ErrorCode==HResult.CLDB_E_RECORD_NOTFOUND)
+                    if((HResult)e.HResult==HResult.CLDB_E_RECORD_NOTFOUND)
                     {
                         int i = name.LastIndexOfAny(TypeDelimeters);
                         if(i>0)
@@ -160,10 +160,10 @@ namespace Microsoft.Samples.Debugging.CorMetadata
                                 {
                                     m_importer.FindTypeDefByName(name.Substring(i+1),parentToken,out token);
                                 }
-                                catch(COMException e2) 
+                                catch(SharpGenException e2) 
                                 {
                                     token=CorMetadataImport.TokenNotFound;
-                                    if((HResult)e2.ErrorCode!=HResult.CLDB_E_RECORD_NOTFOUND)
+                                    if((HResult)e2.HResult!=HResult.CLDB_E_RECORD_NOTFOUND)
                                         throw;
                                 }
                             }

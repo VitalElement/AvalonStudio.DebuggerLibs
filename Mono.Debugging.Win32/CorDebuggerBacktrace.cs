@@ -41,12 +41,12 @@ namespace Mono.Debugging.Win32
 
 						foreach (CorApi.Portable.Frame frame in chainFrames)
 							corFrames.Add (frame);
-					} catch (COMException e) {
+					} catch (SharpGen.Runtime.SharpGenException e) {
 						DebuggerLoggingService.LogMessage ("Failed to enumerate frames of chain: {0}", e.Message);
 					}
 				}
 
-			} catch (COMException e) {
+			} catch (SharpGen.Runtime.SharpGenException e) {
 				DebuggerLoggingService.LogMessage ("Failed to enumerate chains of thread: {0}", e.Message);
 			}
 			return corFrames;

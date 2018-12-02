@@ -47,7 +47,7 @@ namespace Mono.Debugging.Evaluation
 		bool disposed;
 		static int threadNameId;
 
-		public TimedEvaluator () : this (true)
+		public TimedEvaluator () : this (false)
 		{
 		}
 

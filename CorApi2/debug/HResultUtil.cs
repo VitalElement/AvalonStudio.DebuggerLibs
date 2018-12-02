@@ -12,5 +12,13 @@ namespace Microsoft.Samples.Debugging.CorDebug
             }
             return null;
         }
+
+        public static THResult? ToHResult<THResult> (this SharpGen.Runtime.SharpGenException ex) where THResult : struct
+        {
+            if (Enum.IsDefined (typeof (THResult), ex.HResult)) {
+                return (THResult?)Enum.ToObject (typeof (THResult), ex.HResult);
+            }
+            return null;
+        }
     }
 }
