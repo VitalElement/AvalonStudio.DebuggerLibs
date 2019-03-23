@@ -1765,7 +1765,7 @@ namespace Mono.Debugging.Win32
 				ValueReference val = ctx.Evaluator.Evaluate (ctx, exp);
 				return val.CreateObjectValue (false).Value;
 			}
-			catch (EvaluatorException e) {
+			catch (EvaluatorException) {
 				throw;
 			}
 			catch (Exception ex) {

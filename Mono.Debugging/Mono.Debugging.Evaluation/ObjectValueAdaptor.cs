@@ -1216,7 +1216,7 @@ namespace Mono.Debugging.Evaluation
 						return new EvaluationResult ("{" + CallToString (ctx, obj) + "}");
 					} catch (TimeOutException) {
 						// ToString() timed out, fall back to default behavior.
-					} catch (EvaluatorExceptionThrownException e) {
+					} catch (EvaluatorExceptionThrownException) {
 						// ToString() call thrown exception, fall back to default behavior.
 					}
 				}
