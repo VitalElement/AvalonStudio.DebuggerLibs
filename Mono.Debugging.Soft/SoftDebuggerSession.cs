@@ -755,10 +755,20 @@ namespace Mono.Debugging.Soft
 		{
 			return GetThreadBacktrace (GetThread (threadId));
 		}
-		
+
+		protected override long OnGetElapsedTime (long processId, long threadId)
+		{
+			return GetElapsedTime (GetThread (threadId));
+		}
+
 		Backtrace GetThreadBacktrace (ThreadMirror thread)
 		{
 			return new Backtrace (new SoftDebuggerBacktrace (this, thread));
+		}
+
+		long GetElapsedTime (ThreadMirror thread)
+		{
+			return thread.ElapsedTime ();
 		}
 
 		string GetThreadName (ThreadMirror t)
@@ -1410,16 +1420,17 @@ namespace Mono.Debugging.Soft
 		{
 			Step (StepDepth.Over, StepSize.Line);
 		}
-		
+
 		void Step (StepDepth depth, StepSize size)
 		{
+
 			ThreadPool.QueueUserWorkItem (delegate {
 				try {
 					Adaptor.CancelAsyncOperations (); // This call can block, so it has to run in background thread to avoid keeping the main session lock
 					var req = vm.CreateStepRequest (current_thread);
 					req.Depth = depth;
 					req.Size = size;
-					req.Filter = StepFilter.StaticCtor | StepFilter.DebuggerHidden | StepFilter.DebuggerStepThrough;
+					req.Filter = ShouldFilterStaticCtor() | StepFilter.DebuggerHidden | StepFilter.DebuggerStepThrough;
 					if (Options.ProjectAssembliesOnly)
 						req.Filter |= StepFilter.DebuggerNonUserCode;
 					if (assemblyFilters != null && assemblyFilters.Count > 0)
@@ -1453,7 +1464,14 @@ namespace Mono.Debugging.Soft
 					DebuggerLoggingService.LogError ("Step request failed", ex);
 				}
 			});
-		}
+		}
+
+		private StepFilter ShouldFilterStaticCtor()
+		{
+			var frames = current_thread.GetFrames();
+			return (frames.Any(f => f.Method.Name == ".cctor" && f.Method.IsSpecialName && f.Method.IsStatic))
+				? StepFilter.None : StepFilter.StaticCtor;
+		}
 
 		void EventHandler ()
 		{

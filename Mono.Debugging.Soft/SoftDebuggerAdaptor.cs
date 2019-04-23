@@ -730,7 +730,7 @@ namespace Mono.Debugging.Soft
 
 		public override bool NullableHasValue (EvaluationContext ctx, object type, object obj)
 		{
-			var hasValue = GetMember (ctx, type, obj, "has_value");
+			var hasValue = GetMember (ctx, type, obj, "hasValue") ?? GetMember (ctx, type, obj, "has_value");
 
 			return (bool) hasValue.ObjectValue;
 		}
@@ -2743,17 +2743,9 @@ namespace Mono.Debugging.Soft
 
 	internal class SoftOperationResult : OperationResult<Value>
 	{
-		public SoftOperationResult (Value result, bool resultIsException, Value[] outArgs) : base (result, resultIsException)
-		{
-			OutArgs = outArgs;
-		}
+		readonly InvokeOptions options = InvokeOptions.DisableBreakpoints;
 
-		public Value[] OutArgs { get; private set; }
-	}
-
-	internal class SoftMethodCall: AsyncOperationBase<Value>
-	{
-		readonly InvokeOptions options = InvokeOptions.DisableBreakpoints | InvokeOptions.SingleThreaded;
+		readonly ManualResetEvent shutdownEvent = new ManualResetEvent (false);
 		readonly SoftEvaluationContext ctx;
 		readonly MethodMirror function;
 		readonly Value[] args;

@@ -302,7 +302,11 @@ namespace Mono.Debugging.Client
 									}
 								}
 								lock (slock) {
-									actionToExecute ();
+									try {
+										actionToExecute ();
+									} catch (Exception ex) {
+										HandleException (ex);
+									}
 								}
 							}
 						});
@@ -1059,7 +1063,15 @@ namespace Mono.Debugging.Client
 				return bt;
 			}
 		}
-		
+
+		internal long GetElapsedTime (long processId, long threadId)
+		{
+			lock (slock) {
+				long elapsedTime = OnGetElapsedTime (processId, threadId);
+				return elapsedTime;
+			}
+		}
+
 		void ForceStop ()
 		{
 			TargetEventArgs args = new TargetEventArgs (TargetEventType.TargetStopped);
@@ -1626,7 +1638,25 @@ namespace Mono.Debugging.Client
 		/// This method can only be called when the debuggee is stopped by the debugger
 		/// </remarks>
 		protected abstract Backtrace OnGetThreadBacktrace (long processId, long threadId);
-		
+
+		/// <summary>
+		/// Called to get the elapsedTime of last step of a thread in milliseconds
+		/// </summary>
+		/// <param name='processId'>
+		/// Process identifier.
+		/// </param>
+		/// <param name='threadId'>
+		/// Thread identifier.
+		/// </param>
+		/// <remarks>
+		/// This method can only be called when the debuggee is stopped by the debugger
+		/// This method will return -1 if time measurement is not available
+		/// </remarks>
+		protected virtual long OnGetElapsedTime (long processId, long threadId)
+		{
+			return -1;
+		}
+
 		/// <summary>
 		/// Called to gets the disassembly of a source code file
 		/// </summary>
