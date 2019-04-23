@@ -420,7 +420,7 @@ namespace Mono.Debugging.Win32
 
 			var currentSequence = CorBacktrace.GetSequencePoint (this, e.Thread.ActiveFrame);
 			if (currentSequence == null) {
-				stepper.StepOut ();
+				stepper.Step (true);
 				autoStepInto = true;
 				e.Continue = true;
 				return;

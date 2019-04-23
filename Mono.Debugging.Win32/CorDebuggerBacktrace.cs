@@ -124,7 +124,7 @@ namespace Mono.Debugging.Win32
 			if ((SequenceCount > 0) && (offsets[0] <= ip)) {
 				int i;
 				for (i = 0; i < SequenceCount; ++i) {
-					if (offsets[i] >= ip) {
+					if (offsets[i] > ip) {
 						break;
 					}
 				}
