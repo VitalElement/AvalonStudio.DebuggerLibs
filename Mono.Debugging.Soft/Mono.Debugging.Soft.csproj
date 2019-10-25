@@ -65,7 +65,7 @@
     <Compile Include="PortablePdbData.cs" />
   </ItemGroup>
   <PropertyGroup>
-    <NuGetVersionRoslyn Condition="$(NuGetVersionRoslyn) == ''">3.2.1</NuGetVersionRoslyn>
+    <NuGetVersionRoslyn Condition="$(NuGetVersionRoslyn) == ''">3.3.1</NuGetVersionRoslyn>
     <NuGetVersionCecil Condition="$(NuGetVersionCecil) == ''">0.10.1</NuGetVersionCecil>
   </PropertyGroup>
   <ItemGroup>
